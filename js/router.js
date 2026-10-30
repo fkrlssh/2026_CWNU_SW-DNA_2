@@ -43,7 +43,15 @@ function header({ back, title }) {
   if (back) {
     return `<header class="topbar"><button type="button" class="back-button" data-action="${back.action}" aria-label="${escapeHtml(back.label)}">‹</button><span class="topbar-title">${escapeHtml(title || '')}</span><span class="topbar-spacer"></span></header>`;
   }
-  return `<header class="topbar"><span class="brand"><img src="${brandIcon}" alt="" />하루</span></header>`;
+  return `<header class="topbar site-header">
+    <button type="button" class="brand brand-home" data-action="tab" data-target="home" aria-label="하루 홈으로"><img src="${brandIcon}" alt="" />하루</button>
+    <nav class="desktop-nav" aria-label="주요 메뉴">
+      <button type="button" data-action="tab" data-target="home">오늘의 선택</button>
+      <button type="button" data-action="tab" data-target="history">나의 기록</button>
+      <button type="button" data-action="tab" data-target="profile">내 취향</button>
+    </nav>
+    <button type="button" class="header-chat" data-action="open-chat">하루에게 물어보기 <span aria-hidden="true">↗</span></button>
+  </header>`;
 }
 
 export function render() {
@@ -55,6 +63,7 @@ export function render() {
   const activeTab = state.view === 'categories' ? 'home' : state.view;
 
   app.className = `app-shell${showTabs ? ' has-tabs' : ''}${cta ? ' has-cta' : ''}`;
+  app.dataset.view = state.view;
   const enterClass = entering ? (navDirection === 'back' ? ' enter-back' : ' enter') : '';
   // 하단 고정 버튼(cta)은 .screen 바깥에 둬야 슬라이드 애니메이션 중에도 제자리에 있어요.
   app.innerHTML = `${header({ back, title })}<main class="screen${enterClass}">${main}</main>${cta}${showTabs ? tabBar(activeTab) : ''}`;

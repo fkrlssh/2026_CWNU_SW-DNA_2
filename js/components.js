@@ -38,11 +38,18 @@ export function choiceCard({ emoji, title, desc = '', action, data = {}, size = 
 const BUDGET_LABEL = { 저렴: '💸 저렴', 보통: '💰 보통', 여유: '✨ 여유' };
 
 // 추천 카드: 위쪽 그림 영역(이모지 + 파스텔 배경), 이름, 이유 한 줄, 가격대·소요시간 태그
-export function recCard(item, index) {
+export function recCard(item, index, { placePreview = false, category = '' } = {}) {
+  const placeData = placePreview
+    ? ` data-place-preview data-category="${escapeHtml(category)}" data-item-id="${escapeHtml(item.id)}" tabindex="0" aria-label="${escapeHtml(item.title)}. 마우스를 올리면 주변 장소를 확인할 수 있어요."`
+    : '';
+  const placeOverlay = placePreview
+    ? `<span class="place-preview-hint" aria-hidden="true">⌖ 주변 장소 보기</span><div class="place-preview-panel" aria-live="polite"></div>`
+    : '';
   return `<article class="rec-card" style="--i:${index}" data-index="${index}" aria-label="추천 ${index + 1}: ${escapeHtml(item.title)}">
-    <div class="rec-art tone-${escapeHtml(item.color)}">
+    <div class="rec-art tone-${escapeHtml(item.color)}"${placeData}>
       <span class="rec-scene">${escapeHtml(item.scene)}</span>
       <span class="rec-emoji" aria-hidden="true">${item.emoji}</span>
+      ${placeOverlay}
     </div>
     <div class="rec-body">
       <h2>${escapeHtml(item.title)}</h2>

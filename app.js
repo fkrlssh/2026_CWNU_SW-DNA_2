@@ -63,6 +63,7 @@ onEnter('history', loadHistory);
 
 // 오래된 응답이 새 응답을 덮어쓰지 않도록 요청 번호를 매겨요.
 let recRequestId = 0;
+const placePreviewRequests = new WeakMap();
 async function fetchRecommendations(refine = null) {
   const previous = state.rec.items;
   const baseItem = previous[state.rec.index] || null;
@@ -205,6 +206,7 @@ function setActiveCard(index) {
 
 afterRender(() => {
   if (state.view === 'recommendations' && state.rec.status === 'ready') setupCarousel();
+  if (state.view === 'decision') setupPlacePreviews();
   state.rec.fresh = false;
 
   // 방금 누른 칩만 살짝 커졌다 돌아오게 해요.
@@ -214,6 +216,75 @@ afterRender(() => {
     state.onboard.lastToggled = null;
   }
 });
+
+function updatePlacePanel(target, stateName, buildContent) {
+  target.dataset.placeState = stateName;
+  const panel = target.querySelector('.place-preview-panel');
+  if (!panel) return;
+  panel.replaceChildren();
+  buildContent(panel);
+}
+
+function placeMessage(panel, text) {
+  const message = document.createElement('p');
+  message.className = 'place-preview-message';
+  message.textContent = text;
+  panel.append(message);
+}
+
+function renderPlaceResults(panel, result) {
+  const title = document.createElement('strong');
+  title.textContent = `${result.center?.label || '주변'} 추천 장소`;
+  panel.append(title);
+  const list = document.createElement('ul');
+  for (const place of result.places) {
+    const item = document.createElement('li');
+    const link = document.createElement('a');
+    link.textContent = place.name;
+    link.href = place.mapUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    const meta = document.createElement('span');
+    meta.textContent = `${place.address}${place.distanceM === null || place.distanceM === undefined ? '' : ` · ${place.distanceM}m`}`;
+    item.append(link, meta);
+    list.append(item);
+  }
+  panel.append(list);
+}
+
+async function loadPlacePreview(target) {
+  if (target.dataset.placeState === 'loading' || target.dataset.placeState === 'ready' || placePreviewRequests.has(target)) return;
+  const { category, itemId } = target.dataset;
+  if (!category || !itemId || !api.getPlaces) return;
+  updatePlacePanel(target, 'loading', (panel) => placeMessage(panel, '주변 장소를 찾는 중이에요…'));
+  const request = api.getPlaces({ category, itemId });
+  placePreviewRequests.set(target, request);
+  try {
+    const result = await request;
+    if (!target.isConnected) return;
+    if (result.places?.length) {
+      updatePlacePanel(target, 'ready', (panel) => renderPlaceResults(panel, result));
+      return;
+    }
+    const message = result.source === 'none'
+      ? '집에서 즐기는 추천이라 주변 장소가 없어요.'
+      : result.source === 'unavailable'
+        ? '카카오 장소 검색 키를 설정하면 주변 장소를 보여드려요.'
+        : '주변에서 맞는 장소를 찾지 못했어요.';
+    updatePlacePanel(target, 'empty', (panel) => placeMessage(panel, message));
+  } catch {
+    if (target.isConnected) updatePlacePanel(target, 'error', (panel) => placeMessage(panel, '장소를 불러오지 못했어요. 다시 올려 보세요.'));
+  } finally {
+    placePreviewRequests.delete(target);
+  }
+}
+
+function setupPlacePreviews() {
+  app.querySelectorAll('[data-place-preview]').forEach((target) => {
+    target.addEventListener('pointerenter', () => loadPlacePreview(target));
+    target.addEventListener('focus', () => loadPlacePreview(target));
+  });
+}
 
 /* ───────────── 결정 + 피드백 ───────────── */
 

@@ -25,7 +25,7 @@ export function renderDecision() {
         <h1 tabindex="-1">좋은 선택이에요!</h1>
         <p class="lead">이제 고민은 끝. 오늘을 즐겨요.</p>
       </div>
-      <div class="decision-card">${recCard(item, 0)}</div>
+      <div class="decision-card">${recCard(item, 0, { placePreview: ['eat', 'do'].includes(state.category), category: state.category })}</div>
       ${feedbackArea()}`,
     cta: feedback === 'done'
       ? bottomCta({ label: '기록 보러 가기', action: 'tab', data: { target: 'history' }, extra: '<button type="button" class="button ghost full" data-action="tab" data-target="home">홈으로</button>' })
