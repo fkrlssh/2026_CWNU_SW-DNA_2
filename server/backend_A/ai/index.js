@@ -5,5 +5,5 @@ export { applyFeedback } from './feedback.js';
 export { normalizeItem } from './contract.js';
 export { chat } from './chat.js';
 export { findPlaces, placeSearchFor, resolveSearchLocation, clampRadiusKm } from './places.js';
-export { PREFERENCE_DIMENSIONS, applyPreferences, preferenceSchema, sanitizePreferences } from './preferences.js';
+export { PREFERENCE_DIMENSIONS, TASTE_GROUPS, applyPreferences, preferenceSchema, sanitizePreferences, sanitizeTastes } from './preferences.js';
 export { QUIZ_ROUNDS, buildQuiz, scoreQuiz } from './quiz.js';

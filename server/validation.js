@@ -1,7 +1,8 @@
-import { PREFERENCE_DIMENSIONS } from './backend_A/ai/index.js';
+import { PREFERENCE_DIMENSIONS, TASTE_GROUPS } from './backend_A/ai/index.js';
 
 const PROFILE_LIST_FIELDS = ['food', 'style', 'activity', 'foods', 'styles', 'activities', 'allergies', 'dislikes'];
 const PREFERENCE_KEYS = new Set(Object.values(PREFERENCE_DIMENSIONS).flat().map((dimension) => dimension.key));
+const TASTE_TAGS = new Set(Object.values(TASTE_GROUPS).flat().flatMap((group) => group.options.map((option) => option.tag)));
 const CONTEXT_FIELDS = new Set(['mood', 'budget', 'time', 'mode', 'weather', 'with']);
 const REFINES = new Set(['cheaper', 'lighter', 'different', 'new']);
 const MESSAGE_ROLES = new Set(['user', 'assistant']);
@@ -45,11 +46,29 @@ export function validateProfile(answers) {
       if (!Number.isFinite(number) || number < -2 || number > 2) fail('INVALID_PROFILE', `preferences.${key}는 -2~2 사이 숫자여야 합니다.`);
     }
   }
+  if ('tastes' in answers) {
+    if (!isPlainObject(answers.tastes)) fail('INVALID_PROFILE', 'tastes는 { like: [태그], dislike: [태그] } 객체여야 합니다.');
+    for (const side of ['like', 'dislike']) {
+      const list = answers.tastes[side];
+      if (list === undefined) continue;
+      if (!Array.isArray(list) || list.length > 60) fail('INVALID_PROFILE', `tastes.${side}는 최대 60개의 배열이어야 합니다.`);
+      for (const tag of list) {
+        if (!TASTE_TAGS.has(tag)) fail('INVALID_PROFILE', `알 수 없는 취향 항목입니다: ${tag}`);
+      }
+    }
+  }
 }
 
 export function validateContext(context) {
   if (!isPlainObject(context)) fail('INVALID_CONTEXT', 'context는 객체여야 합니다.');
   for (const [key, value] of Object.entries(context)) {
+    if (key === 'prefer' || key === 'avoid') {
+      // 이번 요청에서 고른 범주 태그 목록. 모르는 태그는 서버가 조용히 버린다.
+      if (!Array.isArray(value) || value.length > 10 || value.some((tag) => typeof tag !== 'string' || !tag.trim() || tag.length > 40)) {
+        fail('INVALID_CONTEXT', `${key}는 최대 10개의 문자열 배열이어야 합니다.`);
+      }
+      continue;
+    }
     if (!CONTEXT_FIELDS.has(key) || typeof value !== 'string' || !value.trim() || value.length > 40) {
       fail('INVALID_CONTEXT', `허용되지 않은 context 값입니다: ${key}`);
     }
