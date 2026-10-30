@@ -7,6 +7,7 @@ import test from 'node:test';
 const testDir = mkdtempSync(join(tmpdir(), 'haru-api-'));
 process.env.HARU_DB_PATH = join(testDir, 'test.sqlite');
 process.env.NODE_ENV = 'test';
+delete process.env.OPENAI_API_KEY; // 테스트는 토큰을 쓰지 않는다. 키가 없으면 챗봇은 degraded 응답을 돌려준다.
 
 const { app } = await import('../server/app.js');
 const { db } = await import('../server/db.js');
@@ -70,6 +71,18 @@ test('백엔드 B 핵심 API 흐름', async () => {
   const afterFirst = savedWeights();
   await request(`/api/decisions/${decision.json.decisionId}/feedback`, { method: 'POST', userId, body: { rating: 'good' } });
   assert.deepEqual(savedWeights(), afterFirst, '같은 평가를 다시 보내도 중복 반영하지 않는다');
+
+  const chatted = await request('/api/chat', {
+    method: 'POST', userId, body: { messages: [{ role: 'user', content: '저녁 뭐 먹죠?' }] }
+  });
+  assert.equal(chatted.response.status, 200);
+  assert.equal(chatted.json.degraded, true);
+  assert.equal(typeof chatted.json.reply, 'string');
+  assert.deepEqual(chatted.json.recommendations, []);
+
+  const badChat = await request('/api/chat', { method: 'POST', userId, body: { messages: [{ role: 'assistant', content: 'x' }] } });
+  assert.equal(badChat.response.status, 400);
+  assert.equal(badChat.json.error.code, 'INVALID_MESSAGES');
 
   const history = await request('/api/history', { userId });
   assert.equal(history.response.status, 200);

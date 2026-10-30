@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { db, parseJson } from '../db.js';
 import { requireUser } from '../middleware.js';
 import {
   applyFeedbackToRules,
+  chatWithRules,
   createRules,
   findCatalogItem,
   profileHash,
@@ -137,4 +139,50 @@ apiRouter.get('/history', (req, res) => {
   for (const record of history) for (const tag of record.item?.tags || []) tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
   const favoriteTags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([tag, count]) => ({ tag, count }));
   res.json({ history, summary: { favoriteTags } });
+});
+
+// 챗봇은 메시지마다 토큰을 쓰므로 일반 API 보다 좁은 사용자별 제한을 둔다.
+const chatLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: Number(process.env.CHAT_RATE_LIMIT_PER_MINUTE) || 20,
+  keyGenerator: (req) => req.userId,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+});
+
+// 응답 본문: { reply, recommendations, degraded, engine }
+// Accept: text/event-stream 이면 data: {"delta"} 조각을 흘려보낸 뒤 event: done 에 같은 본문을 담는다.
+apiRouter.post('/chat', chatLimiter, async (req, res, next) => {
+  const { messages, context = {}, excludeIds = [] } = req.body || {};
+  const last = Array.isArray(messages) ? messages.at(-1) : null;
+  if (last?.role !== 'user' || typeof last.content !== 'string' || !last.content.trim()) {
+    return next(Object.assign(new Error('messages 배열의 마지막 항목은 내용이 있는 사용자 메시지여야 합니다.'), { status: 400, code: 'INVALID_MESSAGES' }));
+  }
+  const row = db.prepare('SELECT answers FROM profiles WHERE user_id = ?').get(req.userId);
+  const profile = row ? parseJson(row.answers, {}) : {};
+  const stream = (req.get('Accept') || '').includes('text/event-stream');
+  try {
+    const rules = await getOrCreateRules(req.userId, profile);
+    if (stream) {
+      res.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+      res.flushHeaders();
+    }
+    const result = await chatWithRules({
+      rules, messages, context, excludeIds,
+      onDelta: stream ? (delta) => res.write(`data: ${JSON.stringify({ delta })}\n\n`) : undefined,
+    });
+    console.log(`[chat] user=${req.userId} in=${result.usage.input_tokens} out=${result.usage.output_tokens} degraded=${result.degraded}`);
+    const payload = {
+      reply: result.reply, recommendations: result.recommendations,
+      degraded: result.degraded, engine: rules.meta?.source || 'fallback',
+    };
+    if (!stream) return res.json(payload);
+    res.write(`event: done\ndata: ${JSON.stringify(payload)}\n\n`);
+    res.end();
+  } catch (error) {
+    if (!res.headersSent) return next(error);
+    console.error(error);
+    res.write('event: error\ndata: {"code":"CHAT_FAILED"}\n\n');
+    res.end();
+  }
 });

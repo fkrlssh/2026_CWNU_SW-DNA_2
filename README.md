@@ -20,6 +20,9 @@ pnpm start
 - `HARU_LATITUDE`, `HARU_LONGITUDE`: 날씨 조회 좌표
 - `HARU_TIMEZONE`: 시간대, 기본값 `Asia/Seoul`
 - `CODEX_ENABLED`: 백엔드 A의 실제 Codex 규칙 생성을 사용할 때만 `true`
+- `OPENAI_API_KEY`: 챗봇(`POST /api/chat`)용 키. 없으면 챗봇만 안내 문구로 응답하고 나머지 기능은 정상 동작
+- `OPENAI_CHAT_MODEL`: 챗봇 모델, 기본값 `gpt-5.4-mini`
+- `CHAT_RATE_LIMIT_PER_MINUTE`: 사용자별 분당 챗봇 요청 상한, 기본값 `20`
 
 ## 주요 API
 
@@ -32,6 +35,7 @@ pnpm start
 - `POST /api/decisions`
 - `POST /api/decisions/:id/feedback`
 - `GET /api/history`
+- `POST /api/chat` — `{ messages: [{ role, content }], context?, excludeIds? }` → `{ reply, recommendations, degraded, engine }`. `Accept: text/event-stream`이면 답변 조각을 스트리밍
 
 `POST /api/users`를 제외한 API 요청에는 `X-User-Id` 헤더가 필요합니다. 추천·규칙 생성·피드백 학습은 `server/backend_A/ai` 모듈과 연결되어 있습니다. `CODEX_ENABLED=false`일 때는 토큰을 쓰지 않는 A의 폴백 규칙을 사용합니다.
 
