@@ -5,12 +5,12 @@
   "type": "module",
   "packageManager": "pnpm@10.18.1",
   "scripts": {
-    "dev": "node --watch server/index.js",
-    "start": "node server/index.js",
+    "dev": "node --env-file-if-exists=.env --watch server/index.js",
+    "start": "node --env-file-if-exists=.env server/index.js",
     "test": "node --test"
   },
   "engines": {
-    "node": ">=22.5"
+    "node": ">=22.9"
   },
   "dependencies": {
     "cors": "^2.8.5",

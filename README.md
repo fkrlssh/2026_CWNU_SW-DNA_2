@@ -13,7 +13,7 @@ pnpm start
 
 ## 환경변수
 
-`.env.example`을 참고하세요. 기본값만으로도 실행할 수 있습니다.
+`.env.example`을 복사해 `.env`를 만들면 `pnpm start`·`pnpm dev`가 자동으로 읽습니다(`.env`가 없어도 기본값으로 실행됩니다). 테스트와 Docker 이미지는 `.env`를 읽지 않으므로 배포 환경에서는 플랫폼 환경변수로 넣습니다.
 
 - `PORT`: HTTP 포트, 기본값 `3000`
 - `HARU_DB_PATH`: SQLite 파일 위치
