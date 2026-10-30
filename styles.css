@@ -947,3 +947,46 @@ h1 { font-size: 24px; line-height: 1.35; font-weight: 800; letter-spacing: -.03e
   .place-preview-panel li strong, .place-preview-panel li span { grid-column: 1; }
   .place-preview-panel a { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
 }
+
+/* ───────── 상황 입력 선택지 (이모지 · 이름 · 한 줄 설명) ───────── */
+.situation-step { margin: var(--space-2) 0 var(--space-1); font-size: 13px; font-weight: 700; color: var(--color-accent-text, #8A6500); }
+.situation-hint { margin-bottom: 0; }
+.answer-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: calc(var(--space-2) * -1) 0 var(--space-3); }
+.answer-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; background: var(--color-primary-soft); font-size: 13px; color: var(--color-text); }
+.situation-options { display: grid; gap: 12px; margin-top: var(--space-4); }
+.situation-option {
+  display: flex; align-items: center; gap: var(--space-3); width: 100%;
+  min-height: 84px; padding: 14px 16px;
+  border: 1.5px solid var(--color-border); border-radius: var(--radius-card);
+  background: var(--color-bg); text-align: left; cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .12s ease, background-color .15s ease;
+}
+.situation-option:hover { border-color: var(--color-primary-dark); box-shadow: 0 8px 20px rgba(99, 75, 9, .08); }
+.situation-option:active { transform: scale(.98); background: var(--color-primary-soft); border-color: var(--color-primary); }
+.situation-option:focus-visible { outline: 3px solid var(--color-primary-dark); outline-offset: 2px; }
+.so-emoji { flex: none; width: 56px; height: 56px; display: grid; place-items: center; border-radius: 18px; font-size: 30px; line-height: 1; }
+.so-copy { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.so-copy strong { font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
+.so-copy small { font-size: 14px; color: var(--color-text-sub); }
+.so-arrow { flex: none; font-size: 22px; color: #B5B5B0; transition: transform .15s ease, color .15s ease; }
+.situation-option:hover .so-arrow { color: var(--color-text); transform: translateX(2px); }
+
+/* 넓은 화면: 선택지를 가로 타일로 */
+@media (min-width: 900px) {
+  .situation { max-width: 880px; margin: 0 auto; }
+  .situation h1 { font-size: 30px; }
+  .situation-options { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .situation-options.count-2 { grid-template-columns: repeat(2, 1fr); }
+  .situation-option {
+    flex-direction: column; align-items: flex-start; gap: var(--space-3);
+    min-height: 200px; padding: 22px;
+  }
+  .situation-option:hover { transform: translateY(-3px); }
+  .so-emoji { width: 64px; height: 64px; font-size: 34px; border-radius: 20px; }
+  .so-copy strong { font-size: 20px; }
+  .so-copy small { font-size: 15px; }
+  .so-arrow { position: absolute; }
+  .situation-option { position: relative; }
+  .situation-option .so-arrow { right: 20px; bottom: 18px; }
+  .situation .link-button.skip { margin-top: var(--space-4); }
+}

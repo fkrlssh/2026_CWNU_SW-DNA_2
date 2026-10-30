@@ -45,18 +45,60 @@ export const ONBOARDING_STEPS = [
 ];
 
 // 상황 입력 질문입니다. 마지막 '방식' 질문은 카테고리마다 선택지가 달라요.
+// label: 진행 표시에 쓰는 짧은 이름 / hint: 왜 묻는지 한 줄 / desc: 선택지 아래 설명 / tone: 이모지 배경색
 export function situationQuestions(category) {
   const modes = {
-    eat: [{ label: '배달', value: '배달', emoji: '🛵' }, { label: '외식', value: '외식', emoji: '🍽️' }, { label: '집에서', value: '집에서', emoji: '🏠' }],
-    wear: [{ label: '출근이나 약속', value: '출근·약속', emoji: '👜' }, { label: '편하게 외출', value: '편한 외출', emoji: '🚶' }, { label: '집에서 쉬기', value: '집콕', emoji: '🏠' }],
-    do: [{ label: '집에서', value: '집콕', emoji: '🛋️' }, { label: '가볍게 외출', value: '가벼운 외출', emoji: '🌳' }, { label: '문화생활', value: '문화생활', emoji: '🎨' }]
+    eat: [
+      { label: '배달', value: '배달', emoji: '🛵', desc: '집까지 편하게 받아서', tone: 'peach' },
+      { label: '외식', value: '외식', emoji: '🍽️', desc: '나가서 기분 전환 겸', tone: 'mint' },
+      { label: '집에서', value: '집에서', emoji: '🏠', desc: '간단히 해 먹을래요', tone: 'cream' }
+    ],
+    wear: [
+      { label: '출근이나 약속', value: '출근·약속', emoji: '👜', desc: '단정하게 갖춰 입고', tone: 'lavender' },
+      { label: '편하게 외출', value: '편한 외출', emoji: '🚶', desc: '가볍게 걸치고 나가요', tone: 'mint' },
+      { label: '집에서 쉬기', value: '집콕', emoji: '🏠', desc: '편한 게 최고예요', tone: 'cream' }
+    ],
+    do: [
+      { label: '집에서', value: '집콕', emoji: '🛋️', desc: '집에서 쉬엄쉬엄', tone: 'cream' },
+      { label: '가볍게 외출', value: '가벼운 외출', emoji: '🌳', desc: '동네 한 바퀴 정도', tone: 'green' },
+      { label: '문화생활', value: '문화생활', emoji: '🎨', desc: '전시·영화·공연 같은', tone: 'pink' }
+    ]
   };
+  const modeTitle = { eat: '어떻게 먹을까요?', wear: '어디에 가세요?', do: '어디서 보낼까요?' };
+  const modeHint = { eat: '받는 방법에 맞는 메뉴만 골라드릴게요', wear: '가는 곳에 어울리는 옷으로 골라드릴게요', do: '머무를 곳에 맞는 할 일로 골라드릴게요' };
   return [
-    { key: 'mood', title: '지금 기분은 어때요?', options: [{ label: '좋아요', value: '좋음', emoji: '😊' }, { label: '피곤해요', value: '피곤', emoji: '😮‍💨' }, { label: '우울해요', value: '우울', emoji: '🌧️' }] },
-    { key: 'budget', title: '오늘 예산은요?', options: [{ label: '저렴하게', value: '저렴', emoji: '🌱' }, { label: '보통', value: '보통', emoji: '👌' }, { label: '여유 있게', value: '여유', emoji: '✨' }] },
-    { key: 'time', title: '시간은 얼마나 있어요?', options: [{ label: '10분', value: '10분', emoji: '⏱️' }, { label: '1시간', value: '1시간', emoji: '🕐' }, { label: '반나절', value: '반나절', emoji: '🌤️' }] },
-    { key: 'mode', title: category === 'eat' ? '어떻게 먹을까요?' : category === 'wear' ? '어디에 가세요?' : '어디서 보낼까요?', options: modes[category] || modes.eat },
-    { key: 'with', title: '혼자예요, 같이예요?', options: [{ label: '혼자', value: '혼자', emoji: '🙋' }, { label: '같이', value: '같이', emoji: '👫' }] }
+    {
+      key: 'mood', label: '기분', title: '지금 기분은 어때요?', hint: '기분에 맞는 분위기로 골라드릴게요',
+      options: [
+        { label: '좋아요', value: '좋음', emoji: '😊', desc: '새로운 걸 해봐도 좋은 날', tone: 'yellow' },
+        { label: '피곤해요', value: '피곤', emoji: '😪', desc: '간단하고 편한 쪽으로', tone: 'lavender' },
+        { label: '우울해요', value: '우울', emoji: '🌧️', desc: '마음을 달래줄 따뜻한 쪽으로', tone: 'blue' }
+      ]
+    },
+    {
+      key: 'budget', label: '예산', title: '오늘 예산은요?', hint: '대략적인 느낌이면 충분해요',
+      options: [
+        { label: '저렴하게', value: '저렴', emoji: '🌱', desc: '오늘은 아껴 쓰고 싶어요', tone: 'green' },
+        { label: '보통', value: '보통', emoji: '👌', desc: '평소처럼 괜찮아요', tone: 'yellow' },
+        { label: '여유 있게', value: '여유', emoji: '✨', desc: '나를 위한 작은 사치', tone: 'pink' }
+      ]
+    },
+    {
+      key: 'time', label: '시간', title: '시간은 얼마나 있어요?', hint: '지금 쓸 수 있는 만큼만 골라주세요',
+      options: [
+        { label: '10분', value: '10분', emoji: '⏱️', desc: '빨리 끝내고 싶어요', tone: 'orange' },
+        { label: '1시간', value: '1시간', emoji: '🕐', desc: '적당히 여유 있게', tone: 'mint' },
+        { label: '반나절', value: '반나절', emoji: '🌤️', desc: '오늘은 넉넉해요', tone: 'sky' }
+      ]
+    },
+    { key: 'mode', label: '방식', title: modeTitle[category] || modeTitle.eat, hint: modeHint[category] || modeHint.eat, options: modes[category] || modes.eat },
+    {
+      key: 'with', label: '함께', title: '혼자예요, 같이예요?', hint: '함께하는 사람에 맞춰 골라드릴게요',
+      options: [
+        { label: '혼자', value: '혼자', emoji: '🙋', desc: '나만의 시간', tone: 'yellow' },
+        { label: '같이', value: '같이', emoji: '👫', desc: '친구·연인과 함께', tone: 'pink' }
+      ]
+    }
   ];
 }
 
