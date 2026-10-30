@@ -1,6 +1,7 @@
 import { CATALOG, CATEGORIES, TASTE_GROUPS } from './data.js';
 
 const STORAGE_KEY = 'haru-prototype-v1';
+const MIN_TASTE_SELECTIONS = 1;
 const app = document.querySelector('#app');
 
 // 작은 프로토타입이라 별도 서버 대신 브라우저 저장소에서 취향과 기록을 불러옵니다.
@@ -109,7 +110,7 @@ function renderOnboarding() {
   const groups = TASTE_GROUPS.map((group) => {
     const selected = Array.isArray(profile[group.id]) ? profile[group.id] : [];
     return `<section class="form-section">
-      <div class="group-heading"><strong>${group.title}</strong><span>${selected.length >= 3 ? `${selected.length}개 골랐어요` : `세 가지 이상 골라주세요 · ${selected.length}/3`}</span></div>
+      <div class="group-heading"><strong>${group.title}</strong><span>${selected.length >= MIN_TASTE_SELECTIONS ? `${selected.length}개 골랐어요` : `하나 이상 골라주세요 · ${selected.length}/${MIN_TASTE_SELECTIONS}`}</span></div>
       <div class="chips">${group.choices.map((choice) => `<button class="chip ${selected.includes(choice) ? 'selected' : ''}" data-action="toggle-taste" data-group="${group.id}" data-value="${choice}" aria-pressed="${selected.includes(choice)}">${choice}</button>`).join('')}</div>
     </section>`;
   }).join('');
@@ -356,9 +357,9 @@ function beginCategory(categoryId) {
 
 function saveProfile() {
   const profile = state.profile || { food: [], style: [], activity: [], budgetRange: '보통', activeTime: '저녁형' };
-  const missing = TASTE_GROUPS.find((group) => (profile[group.id] || []).length < 3);
+  const missing = TASTE_GROUPS.find((group) => (profile[group.id] || []).length < MIN_TASTE_SELECTIONS);
   if (missing) {
-    showToast(`${missing.title}에서 세 가지 이상 골라주세요.`);
+    showToast(`${missing.title}에서 하나 이상 골라주세요.`);
     return;
   }
   state.profile = profile;
