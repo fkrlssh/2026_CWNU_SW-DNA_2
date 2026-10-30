@@ -35,6 +35,7 @@ app.use('/api', rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: 'draf
 
 app.get('/_app/health', (_req, res) => res.json({ status: 'ok' }));
 app.use('/api', apiRouter);
+app.use('/icon_images', express.static(resolve(projectRoot, 'icon_images'), { index: false, fallthrough: false }));
 app.get('/', (_req, res) => res.sendFile(resolve(projectRoot, 'index.html')));
 for (const file of publicFiles) app.get(`/${file}`, (_req, res) => res.sendFile(resolve(projectRoot, file)));
 

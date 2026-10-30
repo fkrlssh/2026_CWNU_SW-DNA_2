@@ -2,7 +2,21 @@ import { CATALOG, CATEGORIES, TASTE_GROUPS } from './data.js';
 
 const STORAGE_KEY = 'haru-prototype-v1';
 const MIN_TASTE_SELECTIONS = 1;
+const BRAND_ICONS = {
+  default: `./icon_images/${encodeURIComponent('하루 구름 하늘 아이콘.png')}`,
+  halloween: `./icon_images/${encodeURIComponent('호박과 구름으로 만든 하루 아이콘.png')}`,
+};
 const app = document.querySelector('#app');
+
+function isHalloweenSeason(date = new Date()) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric',
+  }).formatToParts(date).map(({ type, value }) => [type, value]));
+  return Number(parts.month) === 10 && [30, 31].includes(Number(parts.day));
+}
+
+const brandIcon = isHalloweenSeason() ? BRAND_ICONS.halloween : BRAND_ICONS.default;
+document.querySelector('link[rel~="icon"]')?.setAttribute('href', brandIcon);
 
 // 작은 프로토타입이라 별도 서버 대신 브라우저 저장소에서 취향과 기록을 불러옵니다.
 function loadSavedState() {
@@ -61,7 +75,7 @@ function timeGreeting() {
 
 function renderHeader() {
   return `<header class="topbar">
-    <a href="#" class="brand" data-action="home" aria-label="하루 홈으로 이동"><img src="./brand-mark.svg" alt="" />하루 <small>오늘도 가볍게</small></a>
+    <a href="#" class="brand" data-action="home" aria-label="하루 홈으로 이동"><img src="${brandIcon}" alt="" />하루 <small>오늘도 가볍게</small></a>
     <span class="topbar-note">고민은 줄이고, 하루는 가볍게</span>
   </header>`;
 }
