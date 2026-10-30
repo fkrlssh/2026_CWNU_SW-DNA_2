@@ -35,6 +35,9 @@ test('백엔드 B 핵심 API 흐름', async () => {
   assert.equal(health.response.status, 200);
   assert.equal(health.json.status, 'ok');
 
+  const moduleFile = await fetch(`${baseUrl}/js/config.js`);
+  assert.equal(moduleFile.status, 200, '새 프론트의 js/ 모듈을 서버가 제공한다');
+
   const created = await request('/api/users', { method: 'POST' });
   assert.equal(created.response.status, 201);
   const userId = created.json.userId;
