@@ -3,6 +3,7 @@
 import { state } from './state.js';
 import { SCREENS } from './screens/index.js';
 import { escapeHtml, tabBar } from './components.js';
+import { brandIcon } from './brand.js';
 
 const app = document.querySelector('#app');
 
@@ -42,7 +43,7 @@ function header({ back, title }) {
   if (back) {
     return `<header class="topbar"><button type="button" class="back-button" data-action="${back.action}" aria-label="${escapeHtml(back.label)}">‹</button><span class="topbar-title">${escapeHtml(title || '')}</span><span class="topbar-spacer"></span></header>`;
   }
-  return '<header class="topbar"><span class="brand"><img src="./brand-mark.svg" alt="" />하루</span></header>';
+  return `<header class="topbar"><span class="brand"><img src="${brandIcon}" alt="" />하루</span></header>`;
 }
 
 export function render() {

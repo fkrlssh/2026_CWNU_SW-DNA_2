@@ -37,6 +37,11 @@ test('백엔드 B 핵심 API 흐름', async () => {
 
   const moduleFile = await fetch(`${baseUrl}/js/config.js`);
   assert.equal(moduleFile.status, 200, '새 프론트의 js/ 모듈을 서버가 제공한다');
+  const defaultIcon = await fetch(`${baseUrl}/icon_images/${encodeURIComponent('하루 구름 하늘 아이콘.png')}`);
+  const halloweenIcon = await fetch(`${baseUrl}/icon_images/${encodeURIComponent('호박과 구름으로 만든 하루 아이콘.png')}`);
+  assert.equal(defaultIcon.status, 200);
+  assert.equal(halloweenIcon.status, 200);
+  assert.match(defaultIcon.headers.get('content-type') || '', /^image\/png/);
 
   const created = await request('/api/users', { method: 'POST' });
   assert.equal(created.response.status, 201);

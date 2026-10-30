@@ -7,8 +7,10 @@ import { state, ANALYSIS_MESSAGES, activeQuestions, filledContext, emptyProfile 
 import { go, render, onEnter, onLeave, afterRender, setDirection } from './js/router.js';
 import { showToast, showModal, setupModal } from './js/components.js';
 import { isStepValid } from './js/screens/onboarding.js';
+import { applyBrandIcon } from './js/brand.js';
 
 const app = document.querySelector('#app');
+applyBrandIcon();
 
 /* ───────────── 데이터 불러오기 ───────────── */
 
