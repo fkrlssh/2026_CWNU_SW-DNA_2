@@ -25,6 +25,7 @@ export function afterRender(fn) { afterRenderHooks.push(fn); }
 function screenKey() {
   if (state.view === 'onboarding') return `onboarding-${state.onboard.step}`;
   if (state.view === 'situation') return `situation-${state.questionIndex}`;
+  if (state.view === 'quiz') return `quiz-${state.quiz.status}-${state.quiz.index}`;
   return state.view;
 }
 

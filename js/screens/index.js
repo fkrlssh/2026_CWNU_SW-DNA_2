@@ -12,6 +12,7 @@ import { renderDecision } from './decision.js';
 import { renderHistory } from './history.js';
 import { renderProfile } from './profile.js';
 import { renderChat } from './chat.js';
+import { renderPreferenceQuiz, renderPreferenceQuizResult } from './quiz.js';
 
 // 앱을 처음 열 때 저장된 취향을 불러오는 화면
 function renderBoot() {
@@ -30,5 +31,7 @@ export const SCREENS = {
   decision: renderDecision,
   history: renderHistory,
   profile: renderProfile,
-  chat: renderChat
+  chat: renderChat,
+  quiz: renderPreferenceQuiz,
+  'quiz-result': renderPreferenceQuizResult
 };

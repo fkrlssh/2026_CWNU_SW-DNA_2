@@ -22,7 +22,9 @@ function toServerProfile(profile) {
     radius: profile.radius || '동네 안',
     radiusKm: RADIUS_KM[profile.radius] || 3,
     allergies: avoid.filter((word) => ALLERGY_CHIPS.includes(word)),
-    dislikes: avoid.filter((word) => !ALLERGY_CHIPS.includes(word))
+    dislikes: avoid.filter((word) => !ALLERGY_CHIPS.includes(word)),
+    // 퀴즈가 저장한 축 값도 온보딩을 다시 저장할 때 지워지지 않게 같이 보냅니다.
+    preferences: profile.preferences || {}
   };
 }
 
@@ -36,7 +38,8 @@ function fromServerProfile(answers) {
     budgetRange: answers.budgetRange || null,
     activeTime: answers.activeTime || null,
     radius,
-    avoid: [...(answers.allergies || []), ...(answers.dislikes || [])]
+    avoid: [...(answers.allergies || []), ...(answers.dislikes || [])],
+    preferences: answers.preferences || {}
   };
 }
 
@@ -211,6 +214,17 @@ const serverApi = {
   },
   async getPlaces({ category, itemId }) {
     return request('/api/places', { method: 'POST', body: { category, itemId } });
+  },
+  async getPreferenceQuiz(category) {
+    const [quiz, schema] = await Promise.all([
+      request(`/api/preferences/quiz?category=${encodeURIComponent(category)}`),
+      request('/api/preferences/schema')
+    ]);
+    return { ...quiz, dimensions: schema.dimensions?.[category] || [] };
+  },
+  async submitPreferenceQuiz({ category, answers }) {
+    const result = await request('/api/preferences/quiz', { method: 'POST', body: { category, answers } });
+    return { ...result, items: fromServerItems(result.items, category) };
   },
   // messages: [{ role: 'user'|'assistant', content }], onDelta: 답변 글자가 올 때마다 호출
   async chat({ messages, context = {}, excludeIds = [], onDelta }) {

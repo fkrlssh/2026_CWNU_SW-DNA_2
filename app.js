@@ -379,6 +379,46 @@ function beginCategory(categoryId) {
   go('situation');
 }
 
+/* ───────────── 취향 퀴즈 ───────────── */
+
+function openQuizCategorySelect() {
+  state.quiz = { status: 'choose', category: null, rounds: [], dimensions: [], index: 0, answers: [], result: null };
+  go('quiz');
+}
+
+async function loadPreferenceQuiz(category) {
+  state.quiz = { status: 'loading', category, rounds: [], dimensions: [], index: 0, answers: [], result: null };
+  go('quiz');
+  try {
+    const { rounds, dimensions } = await api.getPreferenceQuiz(category);
+    state.quiz = { status: rounds.length ? 'ready' : 'error', category, rounds, dimensions, index: 0, answers: [], result: null };
+  } catch {
+    state.quiz.status = 'error';
+  }
+  if (state.view === 'quiz') render();
+}
+
+function quizAnswerForRound(round, pick) {
+  return { options: round.options.map((option) => option.itemId), pick };
+}
+
+async function submitPreferenceQuiz() {
+  const { category, answers } = state.quiz;
+  state.quiz.status = 'submitting';
+  render();
+  try {
+    const result = await api.submitPreferenceQuiz({ category, answers });
+    state.quiz.result = result;
+    state.quiz.status = 'done';
+    if (state.profile) state.profile.preferences = result.preferences || state.profile.preferences || {};
+    go('quiz-result');
+  } catch {
+    state.quiz.status = 'ready';
+    render();
+    showToast('결과를 저장하지 못했어요. 다시 눌러주세요.');
+  }
+}
+
 const actions = {
   'boot-retry': () => boot(),
 
@@ -454,6 +494,46 @@ const actions = {
   'restart-situation': () => beginCategory(state.category),
   refine: (el) => fetchRecommendations(el.dataset.refine),
   'confirm-choice': () => confirmChoice(),
+
+  // 취향 퀴즈
+  'start-quiz': () => openQuizCategorySelect(),
+  'quiz-category': (el) => loadPreferenceQuiz(el.dataset.category),
+  'quiz-close': () => go('profile', { back: true }),
+  'quiz-retry': () => loadPreferenceQuiz(state.quiz.category),
+  'quiz-pick': (el) => {
+    const round = state.quiz.rounds[state.quiz.index];
+    if (!round) return;
+    state.quiz.answers[state.quiz.index] = quizAnswerForRound(round, el.dataset.itemId);
+    render();
+  },
+  'quiz-skip': () => {
+    const round = state.quiz.rounds[state.quiz.index];
+    if (!round) return;
+    state.quiz.answers[state.quiz.index] = quizAnswerForRound(round, null);
+    actions['quiz-next']();
+  },
+  'quiz-next': () => {
+    const quiz = state.quiz;
+    if (quiz.answers[quiz.index]?.pick === undefined) return;
+    if (quiz.index >= quiz.rounds.length - 1) return submitPreferenceQuiz();
+    quiz.index += 1;
+    setDirection('forward');
+    render();
+  },
+  'quiz-back': () => {
+    if (state.quiz.index === 0) return openQuizCategorySelect();
+    state.quiz.index -= 1;
+    setDirection('back');
+    render();
+  },
+  'quiz-back-to-profile': () => go('profile', { back: true }),
+  'quiz-restart': () => openQuizCategorySelect(),
+  'quiz-open-recommendations': () => {
+    const { items = [] } = state.quiz.result || {};
+    state.category = state.quiz.category;
+    state.rec = { status: items.length ? 'ready' : 'empty', items, index: 0, refine: null };
+    go('recommendations');
+  },
 
   // 결정·피드백
   'decision-retry': () => saveDecision(),
