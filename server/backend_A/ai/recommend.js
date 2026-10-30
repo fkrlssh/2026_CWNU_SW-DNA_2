@@ -64,7 +64,8 @@ function refineAdjustment(item, refine, excludedTags) {
   }
 }
 
-function pickReason(item, weightSets, reasons) {
+// 가중치 기여가 큰 순서의 이유 문구 목록. 끝에 항목 고유 문구를 둬서 후보끼리 겹칠 때 대체할 수 있게 한다.
+function rankedReasons(item, weightSets, reasons) {
   const contributions = new Map();
   for (const weights of weightSets) {
     for (const feature of itemFeatures(item)) {
@@ -73,10 +74,21 @@ function pickReason(item, weightSets, reasons) {
       }
     }
   }
-  const best = [...contributions]
+  const fromRules = [...contributions]
     .filter(([feature, value]) => value > 0 && reasons[feature])
-    .sort((a, b) => b[1] - a[1])[0];
-  return best ? reasons[best[0]] : item.reason ?? DEFAULT_REASON;
+    .sort((a, b) => b[1] - a[1])
+    .map(([feature]) => reasons[feature]);
+  return [...new Set([...fromRules, ...(item.reason ? [item.reason] : [])])];
+}
+
+// 같은 화면의 후보 3개가 같은 "이유 한 줄"을 쓰지 않도록, 위 후보가 이미 쓴 문구는 건너뛴다.
+function assignReasons(ranked) {
+  const used = new Set();
+  return ranked.map(({ item, reasons, score }) => {
+    const reason = reasons.find((text) => !used.has(text)) ?? reasons[0] ?? DEFAULT_REASON;
+    used.add(reason);
+    return { item, reason, score };
+  });
 }
 
 // catalog 은 normalizeItem 을 거친, 요청 카테고리의 항목만 넘긴다.
@@ -89,7 +101,7 @@ export function recommend({ rules, context, catalog, excludeIds = [], refine, ra
   );
   const novelty = refine === 'new' ? NEW_REFINE_NOVELTY : rules.novelty;
 
-  return catalog
+  const ranked = catalog
     .filter((item) => !excluded.has(item.id) && passesHardFilter(item, rules.hard))
     .map((item) => {
       const features = itemFeatures(item);
@@ -101,8 +113,9 @@ export function recommend({ rules, context, catalog, excludeIds = [], refine, ra
         + contextFit(item, context)
         + refineAdjustment(item, refine, excludedTags)
         + novelty * NOVELTY_SPREAD * random();
-      return { item, reason: pickReason(item, weightSets, rules.reasons), score };
+      return { item, reasons: rankedReasons(item, weightSets, rules.reasons), score };
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, RESULT_COUNT);
+  return assignReasons(ranked);
 }
