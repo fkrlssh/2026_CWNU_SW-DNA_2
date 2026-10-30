@@ -90,7 +90,14 @@ export const CATALOG = {
     // 편한 옷
     { id: 'homewear', title: '부드러운 홈웨어 세트', emoji: '☁️', scene: '집에서 쉬는 날', reason: '집콕하는 날엔 몸을 조이지 않는 게 제일이에요.', tags: ['캐주얼', '스포티', '편한 옷'], budget: '저렴', minutes: 3, moods: ['피곤', '우울'], modes: ['집콕'], color: 'sky' },
     { id: 'fleece', title: '후리스와 조거 팬츠', emoji: '🧸', scene: '포근하게 감싸기', reason: '보드라운 감촉이 지친 몸을 포근하게 감싸줘요.', tags: ['편한 옷', '캐주얼'], budget: '저렴', minutes: 4, moods: ['피곤', '우울'], modes: ['집콕', '편한 외출'], color: 'coral' },
-    { id: 'lounge', title: '잠옷처럼 편한 라운지 세트', emoji: '🛋️', scene: '아무것도 안 하는 날', reason: '오늘만큼은 편한 옷으로 몸부터 쉬게 해줘요.', tags: ['편한 옷'], budget: '저렴', minutes: 3, moods: ['피곤', '우울'], modes: ['집콕'], color: 'lavender' }
+    { id: 'lounge', title: '잠옷처럼 편한 라운지 세트', emoji: '🛋️', scene: '아무것도 안 하는 날', reason: '오늘만큼은 편한 옷으로 몸부터 쉬게 해줘요.', tags: ['편한 옷'], budget: '저렴', minutes: 3, moods: ['피곤', '우울'], modes: ['집콕'], color: 'lavender' },
+    // 겨울·아우터 보강
+    { id: 'short-padding', title: '숏패딩과 기모 후드', emoji: '🧥', scene: '추운 날 가장 든든한 조합', reason: '찬바람 부는 날엔 따뜻한 게 제일 멋이에요.', tags: ['캐주얼', '편한 옷'], budget: '보통', minutes: 6, moods: ['피곤', '좋음'], modes: ['편한 외출', '출근·약속'], color: 'sky' },
+    { id: 'puffer-vest', title: '패딩 조끼와 니트', emoji: '🦺', scene: '가볍게 따뜻하게', reason: '팔은 가볍고 몸통은 따뜻해 움직이기 편해요.', tags: ['캐주얼', '스포티'], budget: '보통', minutes: 8, moods: ['좋음', '피곤'], modes: ['편한 외출', '출근·약속'], color: 'mint' },
+    { id: 'leather-jacket', title: '가죽 재킷과 블랙진', emoji: '🖤', scene: '힘 준 날의 한 벌', reason: '한 벌로 분위기가 확 잡히는 조합이에요.', tags: ['스트릿'], budget: '여유', minutes: 10, moods: ['좋음'], modes: ['편한 외출', '출근·약속'], color: 'dark' },
+    { id: 'leather-skirt', title: '가죽 스커트와 니트', emoji: '🎀', scene: '부드럽게 시크하게', reason: '포근한 니트와 매끈한 스커트가 서로를 살려 줘요.', tags: ['러블리', '스트릿'], budget: '보통', minutes: 12, moods: ['좋음', '우울'], modes: ['출근·약속', '편한 외출'], color: 'red' },
+    { id: 'long-coat', title: '롱코트와 머플러', emoji: '🧣', scene: '겨울 거리의 단정함', reason: '코트 자락만으로도 하루가 단정해 보여요.', tags: ['미니멀', '포멀'], budget: '여유', minutes: 12, moods: ['좋음', '우울'], modes: ['출근·약속', '편한 외출'], color: 'cream' },
+    { id: 'fleece-zip', title: '플리스 집업과 데님', emoji: '🧸', scene: '보들보들 가볍게', reason: '가볍고 포근해서 쌀쌀한 날 산책에 딱이에요.', tags: ['캐주얼', '편한 옷'], budget: '저렴', minutes: 6, moods: ['피곤', '좋음'], modes: ['편한 외출', '집콕'], color: 'lavender' }
   ],
   do: [
     // 집에서

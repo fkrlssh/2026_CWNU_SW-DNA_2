@@ -154,6 +154,21 @@ test('백엔드 B 핵심 API 흐름', async () => {
   assert.equal(badQuiz.response.status, 400);
   assert.equal(badQuiz.json.error.code, 'INVALID_QUIZ');
 
+  assert.ok(schema.json.groups.eat.some((g) => g.key === 'form'), '스키마에 좋아요/싫어요 그룹이 있다');
+  const noodleProfile = await request('/api/profile', { method: 'PUT', userId, body: { answers: { ...profile, tastes: { like: ['면요리', '국물'], dislike: ['튀김'] } } } });
+  assert.equal(noodleProfile.response.status, 200);
+  const noodleRec = await request('/api/recommend', { method: 'POST', userId, body: { category: 'eat', context: {} } });
+  assert.ok(noodleRec.json.items.every(({ item }) => item.tags.includes('면요리')), '면·국물 좋아요 칩이 추천에 반영된다');
+  const preferRec = await request('/api/recommend', { method: 'POST', userId, body: { category: 'do', context: { mode: '가벼운 외출', prefer: ['운동'], avoid: ['유료'] } } });
+  assert.equal(preferRec.response.status, 200);
+  assert.ok(preferRec.json.items.every(({ item }) => item.tags.includes('운동')), '요청의 prefer 범주가 추천에 반영된다');
+  const badPrefer = await request('/api/recommend', { method: 'POST', userId, body: { category: 'do', context: { prefer: 'walk' } } });
+  assert.equal(badPrefer.response.status, 400);
+  assert.equal(badPrefer.json.error.code, 'INVALID_CONTEXT');
+  const badTaste = await request('/api/profile', { method: 'PUT', userId, body: { answers: { ...profile, tastes: { like: ['없는태그'] } } } });
+  assert.equal(badTaste.response.status, 400);
+  assert.equal(badTaste.json.error.code, 'INVALID_PROFILE');
+
   const badPreference = await request('/api/profile', { method: 'PUT', userId, body: { answers: { ...profile, preferences: { spicy: 9 } } } });
   assert.equal(badPreference.response.status, 400);
   assert.equal(badPreference.json.error.code, 'INVALID_PROFILE');

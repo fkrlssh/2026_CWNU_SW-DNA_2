@@ -32,14 +32,67 @@ export const PREFERENCE_DIMENSIONS = {
 const ALL_DIMENSIONS = Object.values(PREFERENCE_DIMENSIONS).flat();
 const DIMENSION_BY_KEY = Object.fromEntries(ALL_DIMENSIONS.map((dimension) => [dimension.key, dimension]));
 
-// 축이 쓰는 속성 태그 중 contract.js 의 기본 태그(indoor·outdoor·solo·group)가 아닌 것. TAGS 에 추가된다.
-export const ATTRIBUTE_TAGS = [...new Set(
-  ALL_DIMENSIONS.flatMap((dimension) => [dimension.low.tag, dimension.high.tag])
-    .filter((tag) => !['indoor', 'outdoor', 'solo', 'group'].includes(tag)),
-)];
+// 양극이 아닌 종류형 취향(형태·재질·색·아우터·활동 계열 …). 여러 개를 좋아요/싫어요로 고른다.
+// tag 는 전역이라 음식의 면(麵)과 옷의 면(綿)처럼 이름이 같은 항목은 내부 태그를 다르게 둔다(label 만 같다).
+export const TASTE_LIKE_WEIGHT = 2; // 온보딩 칩(+2)과 같은 크기. 더 약하면 칩에 묻힌다
+export const TASTE_DISLIKE_WEIGHT = -2.5;
+
+export const TASTE_GROUPS = {
+  eat: [
+    { key: 'form', label: '형태', options: [
+      { tag: '밥', label: '밥' }, { tag: '면요리', label: '면' }, { tag: '국물', label: '국물' }, { tag: '빵디저트', label: '빵·디저트' },
+      { tag: '고기', label: '고기' }, { tag: '해물', label: '해산물' }, { tag: '채소', label: '채소' }, { tag: '떡분식', label: '떡·분식' },
+    ] },
+    { key: 'cooking', label: '조리', options: [
+      { tag: '튀김', label: '튀김' }, { tag: '구이', label: '구이' }, { tag: '찜탕', label: '찜·탕' },
+      { tag: '볶음', label: '볶음' }, { tag: '생식', label: '회·샐러드' },
+    ] },
+  ],
+  wear: [
+    { key: 'material', label: '재질', options: [
+      { tag: '니트', label: '니트' }, { tag: '면소재', label: '면' }, { tag: '린넨', label: '린넨' }, { tag: '데님', label: '데님' },
+      { tag: '울', label: '울' }, { tag: '가죽', label: '가죽' }, { tag: '기능성', label: '기능성' }, { tag: '플리스', label: '플리스' },
+    ] },
+    { key: 'color', label: '색', options: [
+      { tag: '블랙', label: '블랙' }, { tag: '화이트', label: '화이트' }, { tag: '베이지', label: '베이지' },
+      { tag: '네이비', label: '네이비' }, { tag: '컬러', label: '컬러' },
+    ] },
+    { key: 'outer', label: '아우터', options: [
+      { tag: '코트', label: '코트' }, { tag: '재킷', label: '재킷' }, { tag: '패딩', label: '패딩' },
+      { tag: '가디건', label: '가디건' }, { tag: '후드', label: '후드' },
+    ] },
+    { key: 'fit', label: '핏', options: [
+      { tag: '오버핏', label: '오버핏' }, { tag: '정핏', label: '정핏' }, { tag: '슬림핏', label: '슬림핏' },
+    ] },
+  ],
+  do: [
+    { key: 'kind', label: '계열', options: [
+      { tag: '운동', label: '운동' }, { tag: '감상', label: '감상' }, { tag: '창작', label: '창작' }, { tag: '휴식', label: '휴식' },
+      { tag: '사교', label: '사교' }, { tag: '탐방', label: '탐방' }, { tag: '학습', label: '학습' },
+    ] },
+    { key: 'place', label: '장소', options: [
+      { tag: '집', label: '집' }, { tag: '카페', label: '카페' }, { tag: '공원', label: '공원' },
+      { tag: '시내', label: '시내' }, { tag: '자연', label: '자연' }, { tag: '실내시설', label: '실내 시설' },
+    ] },
+  ],
+};
+
+const ALL_TASTE_OPTIONS = Object.values(TASTE_GROUPS).flat().flatMap((group) => group.options);
+const TASTE_LABEL_BY_TAG = Object.fromEntries(ALL_TASTE_OPTIONS.map((option) => [option.tag, option.label]));
+const TASTE_TAG_SET = new Set(ALL_TASTE_OPTIONS.map((option) => option.tag));
+
+// 축·그룹이 쓰는 속성 태그 중 contract.js 의 기본 태그(indoor·outdoor·solo·group·운동·카페)가 아닌 것. TAGS 에 추가된다.
+const BASE_TAGS = new Set(['indoor', 'outdoor', 'solo', 'group', '운동', '카페']);
+export const ATTRIBUTE_TAGS = [...new Set([
+  ...ALL_DIMENSIONS.flatMap((dimension) => [dimension.low.tag, dimension.high.tag]),
+  ...ALL_TASTE_OPTIONS.map((option) => option.tag),
+].filter((tag) => !BASE_TAGS.has(tag)))];
 
 // 슬라이더 가중치가 추천에 크게 작용했을 때 카드에 붙는 이유 문구(25자 이내)
 const PREFERENCE_REASONS = {
+  한식: '한식이 당긴다고 하셔서', 일식: '일식이 당긴다고 하셔서', 중식: '중식이 당긴다고 하셔서', 양식: '양식이 당긴다고 하셔서', 분식: '분식이 당긴다고 하셔서',
+  캐주얼: '편한 캐주얼룩을 원하셔서', 포멀: '단정한 분위기를 원하셔서', 스트릿: '개성 있는 스타일을 원하셔서',
+  집콕: '집에서 보내고 싶다고 하셔서', 카페: '카페에서 보내기 좋은 선택이에요', 문화생활: '문화생활을 원하셔서',
   순한: '순한 맛을 좋아하신다고 하셨죠', 매운: '매운맛 취향에 맞췄어요',
   차가운: '시원한 음식을 좋아하시니까요', 따뜻한: '따뜻한 음식을 좋아하시니까요',
   가벼운: '가볍게 드시는 걸 선호하셨어요', 든든한: '든든한 한 끼를 선호하셨어요',
@@ -79,21 +132,84 @@ export function preferenceWeights(preferences) {
   return weights;
 }
 
-// 규칙 위에 슬라이더 가중치를 덧씌운 새 규칙. 원본은 바꾸지 않는다.
-export function applyPreferences(rules, preferences) {
-  const weights = preferenceWeights(preferences);
+// 좋아요/싫어요 칩 값 정리. 아는 태그만 남기고, 양쪽에 다 있으면 싫어요가 이긴다.
+export function sanitizeTastes(raw) {
+  const pick = (list) => (Array.isArray(list) ? [...new Set(list.filter((tag) => TASTE_TAG_SET.has(tag)))] : []);
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { like: [], dislike: [] };
+  const dislike = pick(raw.dislike);
+  const like = pick(raw.like).filter((tag) => !dislike.includes(tag));
+  return { like, dislike };
+}
+
+// 좋아요 +2, 싫어요 -2.5. 싫어요는 하드 필터가 아니라 강한 감점이라, 후보가 그것뿐이면 그래도 나온다.
+export function tasteWeights(tastes, { like = TASTE_LIKE_WEIGHT, dislike = TASTE_DISLIKE_WEIGHT } = {}) {
+  const clean = sanitizeTastes(tastes);
+  const weights = {};
+  for (const tag of clean.like) weights[`tag.${tag}`] = like;
+  for (const tag of clean.dislike) weights[`tag.${tag}`] = dislike;
+  return weights;
+}
+
+// 추천을 받는 그 자리에서 고른 범주("오늘은 면이 당겨요", "튀김은 말고"). 프로필 칩보다 세게, 하드 필터보다는 약하게.
+// 축의 양쪽 태그(매운·따뜻한 …)도 고를 수 있어 "뭐가 당겨요? 매운 거 / 시원한 거" 같은 질문에 쓸 수 있다.
+export const REQUEST_LIKE_WEIGHT = 3;
+export const REQUEST_DISLIKE_WEIGHT = -3;
+// 온보딩에 쓰는 음식 계열·스타일도 현재 추천의 입력값으로 선택할 수 있다.
+// 이 값들은 data.js 항목의 tags에 이미 있으므로 같은 가중치 경로로 추천에 반영한다.
+const REQUEST_CATEGORY_TAGS = [
+  '한식', '양식', '일식', '분식', '중식', '샐러드', '디저트',
+  '캐주얼', '미니멀', '스트릿', '러블리', '스포티', '포멀', '편한 옷',
+  '집콕', '산책', '문화생활', '카페', '쇼핑', '요리'
+];
+const REQUEST_TAG_SET = new Set([
+  ...TASTE_TAG_SET,
+  ...ALL_DIMENSIONS.flatMap((d) => [d.low.tag, d.high.tag]),
+  ...REQUEST_CATEGORY_TAGS
+]);
+
+export function sanitizeRequestTastes(context) {
+  const pick = (list) => (Array.isArray(list) ? [...new Set(list.filter((tag) => REQUEST_TAG_SET.has(tag)))].slice(0, 10) : []);
+  const avoid = pick(context?.avoid);
+  const prefer = pick(context?.prefer).filter((tag) => !avoid.includes(tag));
+  return { prefer, avoid };
+}
+
+export function requestTasteWeights(context) {
+  const { prefer, avoid } = sanitizeRequestTastes(context);
+  const weights = {};
+  for (const tag of prefer) weights[`tag.${tag}`] = REQUEST_LIKE_WEIGHT;
+  for (const tag of avoid) weights[`tag.${tag}`] = REQUEST_DISLIKE_WEIGHT;
+  return weights;
+}
+
+// 규칙 위에 슬라이더(preferences)·프로필 칩(tastes)·이번 요청의 범주(requestContext.prefer/avoid)를 덧씌운 새 규칙.
+// 원본은 바꾸지 않는다.
+export function applyPreferences(rules, preferences, tastes, requestContext) {
+  const weights = { ...preferenceWeights(preferences) };
+  for (const source of [tasteWeights(tastes), requestTasteWeights(requestContext)]) {
+    for (const [feature, delta] of Object.entries(source)) {
+      weights[feature] = Math.round(((weights[feature] ?? 0) + delta) * 100) / 100;
+    }
+  }
   if (Object.keys(weights).length === 0) return rules;
   const always = { ...(rules.weights?.always ?? {}) };
   const reasons = { ...(rules.reasons ?? {}) };
   for (const [feature, delta] of Object.entries(weights)) {
     always[feature] = Math.round(((always[feature] ?? 0) + delta) * 100) / 100;
     const tag = feature.slice('tag.'.length);
-    if (delta > 0 && !reasons[feature] && PREFERENCE_REASONS[tag]) reasons[feature] = PREFERENCE_REASONS[tag];
+    if (delta > 0 && !reasons[feature]) {
+      const label = TASTE_LABEL_BY_TAG[tag];
+      const text = PREFERENCE_REASONS[tag] ?? (label ? `${label} 취향에 맞췄어요` : undefined);
+      if (text) reasons[feature] = text;
+    }
   }
   return { ...rules, weights: { ...rules.weights, always }, reasons };
 }
 
-// 프론트 슬라이더 화면용 스키마. 값 범위와 축 목록을 그대로 내려준다.
+// 프론트 취향 화면용 스키마. 축(슬라이더)과 그룹(좋아요/싫어요 칩)을 함께 내려준다.
 export function preferenceSchema() {
-  return { min: PREFERENCE_MIN, max: PREFERENCE_MAX, step: 0.5, dimensions: PREFERENCE_DIMENSIONS };
+  return {
+    min: PREFERENCE_MIN, max: PREFERENCE_MAX, step: 0.5, dimensions: PREFERENCE_DIMENSIONS,
+    groups: TASTE_GROUPS, likeWeight: TASTE_LIKE_WEIGHT, dislikeWeight: TASTE_DISLIKE_WEIGHT,
+  };
 }

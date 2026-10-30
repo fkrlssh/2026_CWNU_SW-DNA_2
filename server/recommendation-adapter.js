@@ -11,6 +11,7 @@ import {
   recommend,
   resolveRulesProvider,
   sanitizePreferences,
+  sanitizeTastes,
   scoreQuiz,
 } from './backend_A/ai/index.js';
 
@@ -20,9 +21,15 @@ const budgetByLabel = {
   보통: 'mid',
   '조금 여유롭게': 'high',
   여유: 'high',
+  '1만원 이하': 'low',
+  '1만~2만원': 'mid',
+  '2만원 이상': 'high',
+  '5천원 이하': 'low',
+  '5천원~1만원': 'mid',
+  '1만원 이상': 'high',
 };
 const moodByLabel = { 좋음: 'good', 피곤: 'tired', 우울: 'sad' };
-const timeByLabel = { '10분': '10', '1시간': '60', 반나절: '180' };
+const timeByLabel = { '10분': '10', '30분': '30', '1시간': '60', '2시간 이상': '180', 반나절: '180' };
 const modeByLabel = {
   배달: 'delivery', 외식: 'out', '출근·약속': 'out', '편한 외출': 'out',
   '가벼운 외출': 'out', 문화생활: 'out', 집밥: 'home', 집콕: 'home', 집에서: 'home',
@@ -47,20 +54,21 @@ export function normalizeProfile(profile = {}) {
     allergies: Array.isArray(profile.allergies) ? profile.allergies : [],
     dislikes: Array.isArray(profile.dislikes) ? profile.dislikes : [],
     noveltyPref: profile.noveltyPref === 'new' ? 'new' : 'familiar',
-    // 취향 축 슬라이더 값. 규칙 생성에는 쓰지 않고 추천 시점에 덧씌운다(바꿔도 AI 재생성 없음).
+    // 취향 축 슬라이더 값과 좋아요/싫어요 칩. 규칙 생성에는 쓰지 않고 추천 시점에 덧씌운다(바꿔도 AI 재생성 없음).
     preferences: sanitizePreferences(profile.preferences),
+    tastes: sanitizeTastes(profile.tastes),
   };
 }
 
-// 규칙 재생성 여부를 정하는 해시. preferences 는 덧씌우기라 제외한다.
+// 규칙 재생성 여부를 정하는 해시. preferences·tastes 는 덧씌우기라 제외한다.
 export function profileHash(profile = {}) {
-  const { preferences, ...answers } = normalizeProfile(profile);
+  const { preferences, tastes, ...answers } = normalizeProfile(profile);
   return createHash('sha256').update(JSON.stringify(canonicalize(answers))).digest('hex');
 }
 
-// 프로필의 슬라이더 값을 규칙에 덧씌운다. 추천·챗봇이 공통으로 쓴다.
+// 프로필의 슬라이더 값과 칩 선택을 규칙에 덧씌운다. 추천·챗봇이 공통으로 쓴다.
 export function rulesForProfile(rules, profile = {}) {
-  return applyPreferences(rules, sanitizePreferences(profile.preferences));
+  return applyPreferences(rules, sanitizePreferences(profile.preferences), sanitizeTastes(profile.tastes));
 }
 
 export function normalizeContext(context = {}) {
@@ -71,7 +79,16 @@ export function normalizeContext(context = {}) {
     ...(context.mode ? { mode: modeByLabel[context.mode] ?? context.mode } : {}),
     ...(context.weather ? { weather: context.weather } : {}),
     ...(context.with ? { with: withByLabel[context.with] ?? context.with } : {}),
+    // 이번 요청에서 고른 범주("면이 당겨요", "튀김은 말고"). 상황 키가 아니라 가중치 덧씌우기로 쓰인다.
+    ...(Array.isArray(context.prefer) ? { prefer: context.prefer } : {}),
+    ...(Array.isArray(context.avoid) ? { avoid: context.avoid } : {}),
   };
+}
+
+// prefer/avoid 는 규칙에 덧씌우고, 엔진에는 상황 키만 넘긴다.
+function splitRequestTastes(rules, context) {
+  const { prefer, avoid, ...situation } = normalizeContext(context);
+  return { rules: applyPreferences(rules, {}, {}, { prefer, avoid }), situation };
 }
 
 // 규칙 생성 제공자 이름: api(OpenAI 직접 호출) · codex(Codex CLI) · fallback(AI 없음)
@@ -81,16 +98,17 @@ export function rulesProviderName() {
 
 // allowAi=false 면 AI 제공자를 쓰지 않고 폴백 규칙을 만든다.
 export async function createRules(profile = {}, { allowAi = true } = {}) {
-  const { preferences, ...answers } = normalizeProfile(profile);
+  const { preferences, tastes, ...answers } = normalizeProfile(profile);
   const provider = allowAi ? resolveRulesProvider() : { name: 'fallback', run: null };
   return generateRules(answers, { run: provider.run, source: provider.name });
 }
 
 export function recommendWithRules({ rules, category, context = {}, excludeIds = [], refine = null }) {
   const catalog = (CATALOG[category] || []).map((item) => normalizeItem(item, category));
+  const request = splitRequestTastes(rules, context);
   return recommend({
-    rules,
-    context: normalizeContext(context),
+    rules: request.rules,
+    context: request.situation,
     catalog,
     excludeIds: Array.isArray(excludeIds) ? excludeIds : [],
     refine,
@@ -103,11 +121,12 @@ export function fullCatalog() {
 }
 
 export function chatWithRules({ rules, messages, context = {}, excludeIds = [], onDelta, onStatus }) {
+  const request = splitRequestTastes(rules, context);
   return chat({
-    rules,
+    rules: request.rules,
     messages,
     catalog: fullCatalog(),
-    context: normalizeContext(context),
+    context: request.situation,
     excludeIds: Array.isArray(excludeIds) ? excludeIds : [],
     onDelta,
     onStatus,
