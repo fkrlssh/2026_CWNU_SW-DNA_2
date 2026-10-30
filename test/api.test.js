@@ -54,6 +54,7 @@ test('백엔드 B 핵심 API 흐름', async () => {
   });
   assert.equal(recommended.response.status, 200);
   assert.equal(recommended.json.items.length, 3);
+  assert.ok(recommended.json.items.every(({ item }) => item.minutes <= 20), '10분 요청에는 20분 넘는 메뉴를 내지 않는다');
 
   const item = recommended.json.items[0].item;
   const decision = await request('/api/decisions', {

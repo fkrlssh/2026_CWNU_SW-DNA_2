@@ -8,6 +8,16 @@ const CHEAPER_PENALTY = 2;
 const LIGHTER_BONUS = 3;
 const DIFFERENT_PENALTY = 3;
 const DEFAULT_REASON = '오늘 상황에 잘 어울려요';
+const MOOD_FIT = 3;
+const MODE_FIT = 5;
+const MODE_MISS = 3;
+const BUDGET_RANK = { low: 1, mid: 2, high: 3 };
+// 시간 답변별 [소요 분 상한, 점수]. 처음 맞는 구간을 쓰고 마지막 구간은 초과분이다.
+const TIME_FIT = {
+  10: [[10, 6], [20, 1], [Infinity, -4]],
+  60: [[60, 4], [Infinity, -2]],
+  180: [[30, 1], [Infinity, 3]],
+};
 
 function activeWeights(rules, context) {
   const keys = ['always', ...Object.entries(context ?? {}).map(([key, value]) => `${key}.${value}`)];
@@ -25,6 +35,24 @@ function passesHardFilter(item, hard) {
     && !excluded.some((tag) => itemTags.includes(tag) || item.title?.includes(tag))
     && !hard.exclude_types.includes(item.type)
     && item.price <= hard.max_price_level;
+}
+
+// 기존 app.js scoreItem 의 상황 적합도. 규칙 가중치가 표현하지 못하는 항목 조건(소요 시간·기분·방식·예산)을 본다.
+// 조건 필드가 없는 항목은 영향을 받지 않는다.
+function contextFit(item, context = {}) {
+  let score = 0;
+  if (context.mood && item.moodKeys?.includes(context.mood)) score += MOOD_FIT;
+  if (context.mode && item.modeKeys?.length) {
+    score += item.modeKeys.includes(context.mode) ? MODE_FIT : -MODE_MISS;
+  }
+  if (BUDGET_RANK[context.budget]) {
+    score += 3 - Math.abs(BUDGET_RANK[context.budget] - item.price) * 2;
+  }
+  const timeBands = TIME_FIT[context.time];
+  if (timeBands && item.minutes !== undefined) {
+    score += timeBands.find(([maxMinutes]) => item.minutes <= maxMinutes)[1];
+  }
+  return score;
 }
 
 function refineAdjustment(item, refine, excludedTags) {
@@ -70,6 +98,7 @@ export function recommend({ rules, context, catalog, excludeIds = [], refine, ra
         0,
       );
       const score = base
+        + contextFit(item, context)
         + refineAdjustment(item, refine, excludedTags)
         + novelty * NOVELTY_SPREAD * random();
       return { item, reason: pickReason(item, weightSets, rules.reasons), score };
