@@ -28,6 +28,11 @@ export function renderProfile() {
       </section>
       <p class="lead">묶음을 누르면 바로 고칠 수 있어요.</p>
       <div class="taste-list">${ONBOARDING_STEPS.map((step, index) => tasteSection(step, index, profile)).join('')}</div>
+      <section class="quiz-entry" aria-labelledby="quiz-entry-title">
+        <span aria-hidden="true">✦</span>
+        <div><p class="summary-kicker">5라운드 취향 퀴즈</p><h2 id="quiz-entry-title">고르는 것만으로<br />오늘의 취향을 더 알아봐요.</h2><p>음식·옷·활동 중 하나를 골라 3가지 선택을 비교해 보세요.</p></div>
+        <button type="button" class="button outline" data-action="start-quiz">퀴즈 시작하기</button>
+      </section>
       <button type="button" class="button outline full" data-action="reanalyze">🔄 취향 다시 분석하기</button>
       <button type="button" class="link-button reset" data-action="reset-all">처음부터 다시 시작하기</button>`
   };

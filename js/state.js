@@ -16,7 +16,9 @@ export const state = {
   rec: { status: 'idle', items: [], index: 0, refine: null }, // 추천 카드
   decision: { item: null, id: null, status: 'idle', feedback: 'idle', rating: null },
   history: { status: 'idle', records: [] },
-  chat: { messages: [], status: 'idle' } // 챗봇 대화 기록 (새로고침하면 비워져요)
+  chat: { messages: [], status: 'idle' }, // 챗봇 대화 기록 (새로고침하면 비워져요)
+  // 카테고리별 5라운드 취향 퀴즈. answers는 서버가 준 보기 id와 pick을 그대로 보관해요.
+  quiz: { status: 'idle', category: null, rounds: [], dimensions: [], index: 0, answers: [], result: null }
 };
 
 export const RATING = {
@@ -50,7 +52,7 @@ export function categoryInfo(id = state.category) {
 }
 
 export function emptyProfile() {
-  return { food: [], style: [], activity: [], budgetRange: null, activeTime: null, radius: null, avoid: [] };
+  return { food: [], style: [], activity: [], budgetRange: null, activeTime: null, radius: null, avoid: [], preferences: {} };
 }
 
 // config에서 '혼자/같이' 질문을 껐으면 빼고 보여줘요.
