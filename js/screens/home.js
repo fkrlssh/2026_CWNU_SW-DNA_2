@@ -68,9 +68,9 @@ export function renderHome() {
         <div class="mini-cards">${others.map((category) => `<button type="button" class="mini-card" data-action="start-category" data-category="${category.id}"><span aria-hidden="true">${category.emoji}</span><strong>${category.title}</strong><small>${category.subtitle}</small><b aria-hidden="true">↗</b></button>`).join('')}</div>
       </section>
       <section class="home-story" aria-labelledby="story-title">
-        <div class="home-story-intro"><p class="section-kicker">하루를 쓰는 방법</p><h2 id="story-title">작은 고민을<br />가벼운 선택으로.</h2><p>정답을 정해 주기보다, 지금의 기분과 상황에 어울리는 시작점을 함께 찾아드려요.</p></div>
+        <div class="home-story-intro"><p class="section-kicker">하루를 쓰는 방법</p><h2 id="story-title">작은 고민을<br />가벼운 선택으로.</h2><p>정답을 정해 주기보다,<br />지금의 기분과 상황에 어울리는<br />시작점을 함께 찾아드려요.</p></div>
         <ol class="story-steps">
-          <li><span>01</span><strong>내 취향</strong><p>좋아하는 것과 피하고 싶은 것을 알려주세요.</p></li>
+          <li><span>01</span><strong>내 취향</strong><p>좋아하는 것과 피하고 싶은 것을<br />알려주세요.</p></li>
           <li><span>02</span><strong>지금 상황</strong><p>기분, 시간, 예산을 짧게 골라요.</p></li>
           <li><span>03</span><strong>오늘의 추천</strong><p>고민을 덜어 줄 선택지를 받아보세요.</p></li>
         </ol>
