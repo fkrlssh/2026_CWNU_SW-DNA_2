@@ -1,15 +1,25 @@
 import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { db, parseJson } from '../db.js';
 import { requireUser } from '../middleware.js';
 import {
   applyFeedbackToRules,
+  chatWithRules,
   createRules,
   findCatalogItem,
   profileHash,
   recommendWithRules,
 } from '../recommendation-adapter.js';
 import { fetchContext } from '../weather.js';
+import {
+  validateContext,
+  validateDecision,
+  validateExcludeIds,
+  validateMessages,
+  validateProfile,
+  validateRefine,
+} from '../validation.js';
 
 export const apiRouter = Router();
 
@@ -43,9 +53,7 @@ apiRouter.get('/profile', (req, res) => {
 });
 
 apiRouter.put('/profile', (req, res, next) => {
-  if (!req.body?.answers || typeof req.body.answers !== 'object' || Array.isArray(req.body.answers)) {
-    return next(Object.assign(new Error('answers 객체가 필요합니다.'), { status: 400, code: 'INVALID_PROFILE' }));
-  }
+  try { validateProfile(req.body?.answers); } catch (error) { return next(error); }
   db.prepare(`
     INSERT INTO profiles (user_id, answers, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(user_id) DO UPDATE SET answers = excluded.answers, updated_at = CURRENT_TIMESTAMP
@@ -71,6 +79,11 @@ apiRouter.post('/recommend', async (req, res, next) => {
   if (!['eat', 'wear', 'do'].includes(category)) {
     return next(Object.assign(new Error('category는 eat, wear, do 중 하나여야 합니다.'), { status: 400, code: 'INVALID_CATEGORY' }));
   }
+  try {
+    validateContext(context);
+    validateRefine(refine);
+    validateExcludeIds(excludeIds);
+  } catch (error) { return next(error); }
   const row = db.prepare('SELECT answers FROM profiles WHERE user_id = ?').get(req.userId);
   const profile = row ? parseJson(row.answers, {}) : {};
   try {
@@ -84,6 +97,7 @@ apiRouter.post('/recommend', async (req, res, next) => {
 
 apiRouter.post('/decisions', (req, res, next) => {
   const { category, itemId, context = {} } = req.body || {};
+  try { validateDecision({ category, itemId, context }); } catch (error) { return next(error); }
   if (!findCatalogItem(category, itemId)) {
     return next(Object.assign(new Error('카탈로그에서 항목을 찾을 수 없습니다.'), { status: 400, code: 'ITEM_NOT_FOUND' }));
   }
@@ -137,4 +151,51 @@ apiRouter.get('/history', (req, res) => {
   for (const record of history) for (const tag of record.item?.tags || []) tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
   const favoriteTags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([tag, count]) => ({ tag, count }));
   res.json({ history, summary: { favoriteTags } });
+});
+
+// 챗봇은 메시지마다 토큰을 쓰므로 일반 API 보다 좁은 사용자별 제한을 둔다.
+const chatLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: Number(process.env.CHAT_RATE_LIMIT_PER_MINUTE) || 20,
+  keyGenerator: (req) => req.userId,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+});
+
+// 응답 본문: { reply, recommendations, degraded, engine }
+// Accept: text/event-stream 이면 data: {"delta"} 조각을 흘려보낸 뒤 event: done 에 같은 본문을 담는다.
+apiRouter.post('/chat', chatLimiter, async (req, res, next) => {
+  const { messages, context = {}, excludeIds = [] } = req.body || {};
+  try {
+    validateMessages(messages);
+    validateContext(context);
+    validateExcludeIds(excludeIds);
+  } catch (error) { return next(error); }
+  const row = db.prepare('SELECT answers FROM profiles WHERE user_id = ?').get(req.userId);
+  const profile = row ? parseJson(row.answers, {}) : {};
+  const stream = (req.get('Accept') || '').includes('text/event-stream');
+  try {
+    const rules = await getOrCreateRules(req.userId, profile);
+    if (stream) {
+      res.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+      res.flushHeaders();
+    }
+    const result = await chatWithRules({
+      rules, messages, context, excludeIds,
+      onDelta: stream ? (delta) => res.write(`data: ${JSON.stringify({ delta })}\n\n`) : undefined,
+    });
+    console.log(`[chat] user=${req.userId} in=${result.usage.input_tokens} out=${result.usage.output_tokens} degraded=${result.degraded}`);
+    const payload = {
+      reply: result.reply, recommendations: result.recommendations,
+      degraded: result.degraded, engine: rules.meta?.source || 'fallback',
+    };
+    if (!stream) return res.json(payload);
+    res.write(`event: done\ndata: ${JSON.stringify(payload)}\n\n`);
+    res.end();
+  } catch (error) {
+    if (!res.headersSent) return next(error);
+    console.error(error);
+    res.write('event: error\ndata: {"code":"CHAT_FAILED"}\n\n');
+    res.end();
+  }
 });

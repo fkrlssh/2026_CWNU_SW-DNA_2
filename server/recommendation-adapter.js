@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { CATALOG } from '../data.js';
 import {
   applyFeedback,
+  chat,
   generateRules,
   normalizeItem,
   recommend,
@@ -73,6 +74,22 @@ export function recommendWithRules({ rules, category, context = {}, excludeIds =
     catalog,
     excludeIds: Array.isArray(excludeIds) ? excludeIds : [],
     refine,
+  });
+}
+
+// 챗봇은 카테고리를 스스로 고르므로 전체 카탈로그를 넘긴다.
+export function fullCatalog() {
+  return Object.entries(CATALOG).flatMap(([category, items]) => items.map((item) => normalizeItem(item, category)));
+}
+
+export function chatWithRules({ rules, messages, context = {}, excludeIds = [], onDelta }) {
+  return chat({
+    rules,
+    messages,
+    catalog: fullCatalog(),
+    context: normalizeContext(context),
+    excludeIds: Array.isArray(excludeIds) ? excludeIds : [],
+    onDelta,
   });
 }
 
