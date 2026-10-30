@@ -19,8 +19,9 @@ const moodByLabel = { 좋음: 'good', 피곤: 'tired', 우울: 'sad' };
 const timeByLabel = { '10분': '10', '1시간': '60', 반나절: '180' };
 const modeByLabel = {
   배달: 'delivery', 외식: 'out', '출근·약속': 'out', '편한 외출': 'out',
-  '가벼운 외출': 'out', 문화생활: 'out', 집밥: 'home', 집콕: 'home',
+  '가벼운 외출': 'out', 문화생활: 'out', 집밥: 'home', 집콕: 'home', 집에서: 'home',
 };
+const withByLabel = { 혼자: 'alone', 같이: 'friend' };
 
 function canonicalize(value) {
   if (Array.isArray(value)) return value.map(canonicalize);
@@ -54,7 +55,7 @@ export function normalizeContext(context = {}) {
     ...(context.time ? { time: timeByLabel[context.time] ?? context.time } : {}),
     ...(context.mode ? { mode: modeByLabel[context.mode] ?? context.mode } : {}),
     ...(context.weather ? { weather: context.weather } : {}),
-    ...(context.with ? { with: context.with } : {}),
+    ...(context.with ? { with: withByLabel[context.with] ?? context.with } : {}),
   };
 }
 
