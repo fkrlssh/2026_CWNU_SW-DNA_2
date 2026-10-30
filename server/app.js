@@ -11,15 +11,24 @@ const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const publicFiles = ['index.html', 'styles.css', 'app.js', 'data.js', 'brand-mark.svg', 'onboarding-375.png'];
 const allowedOrigins = new Set((process.env.CORS_ORIGINS || '').split(',').map((origin) => origin.trim()).filter(Boolean));
 
-function allowOrigin(origin, callback) {
+function hasSameHost(origin, req) {
+  if (!origin) return false;
+  try {
+    return new URL(origin).host.toLowerCase() === (req.get('host') || '').trim().toLowerCase();
+  } catch {
+    return false;
+  }
+}
+
+function allowOrigin(origin, req, callback) {
   const developmentDefault = process.env.NODE_ENV !== 'production' && allowedOrigins.size === 0;
-  if (!origin || developmentDefault || allowedOrigins.has(origin)) return callback(null, true);
+  if (!origin || hasSameHost(origin, req) || developmentDefault || allowedOrigins.has(origin)) return callback(null, true);
   callback(Object.assign(new Error('허용되지 않은 웹 출처입니다.'), { status: 403, code: 'CORS_ORIGIN_DENIED' }));
 }
 
 export const app = express();
 app.disable('x-powered-by');
-app.use(cors({ origin: allowOrigin }));
+app.use((req, res, next) => cors({ origin: (origin, callback) => allowOrigin(origin, req, callback) })(req, res, next));
 app.use(express.json({ limit: '256kb' }));
 app.use(morgan(process.env.NODE_ENV === 'test' ? 'tiny' : 'dev'));
 app.use('/api', rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: 'draft-8', legacyHeaders: false }));

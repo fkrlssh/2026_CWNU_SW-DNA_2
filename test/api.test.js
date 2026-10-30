@@ -40,6 +40,10 @@ test('백엔드 B 핵심 API 흐름', async () => {
   const userId = created.json.userId;
   assert.match(userId, /^[0-9a-f-]{36}$/);
 
+  const sameOrigin = await fetch(`${baseUrl}/api/users`, { method: 'POST', headers: { Origin: baseUrl } });
+  assert.equal(sameOrigin.status, 201, 'CORS_ORIGINS에 없어도 요청 Host와 같은 출처는 허용한다');
+  assert.equal(sameOrigin.headers.get('access-control-allow-origin'), baseUrl);
+
   const deniedOrigin = await fetch(`${baseUrl}/api/users`, { method: 'POST', headers: { Origin: 'http://blocked.test' } });
   assert.equal(deniedOrigin.status, 403);
   assert.equal((await deniedOrigin.json()).error.code, 'CORS_ORIGIN_DENIED');
