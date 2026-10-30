@@ -114,6 +114,41 @@ async function finishOnboarding() {
   }
 }
 
+/* ───────────── 세부 취향 (좋아요/싫어요 칩) ───────────── */
+
+async function openTastes(category = state.category) {
+  const saved = state.profile?.tastes || { like: [], dislike: [] };
+  state.tastes = {
+    status: state.tastes.schema ? 'ready' : 'loading',
+    schema: state.tastes.schema,
+    category: ['eat', 'wear', 'do'].includes(category) ? category : 'eat',
+    draft: { like: [...(saved.like || [])], dislike: [...(saved.dislike || [])] }
+  };
+  go('tastes');
+  if (state.tastes.schema) return;
+  try {
+    state.tastes.schema = await api.getPreferenceSchema();
+    state.tastes.status = 'ready';
+  } catch {
+    state.tastes.status = 'error';
+  }
+  if (state.view === 'tastes') render();
+}
+
+async function saveTastes() {
+  const { like, dislike } = state.tastes.draft;
+  const profile = { ...emptyProfile(), ...state.profile, tastes: { like: [...like], dislike: [...dislike] } };
+  try {
+    await api.saveProfile(profile);
+  } catch {
+    showToast('잠깐 문제가 생겼어요. 다시 눌러주세요.');
+    return;
+  }
+  state.profile = profile;
+  go('profile', { back: true });
+  showToast('저장했어요. 다음 추천부터 바로 반영돼요.');
+}
+
 function addAvoidFromInput() {
   const input = app.querySelector('#avoid-input');
   const words = (input?.value || '').split(',').map((word) => word.trim()).filter(Boolean);
@@ -474,6 +509,14 @@ const actions = {
     setDirection('forward');
     render();
   },
+  // 이 라운드만 답 없이 넘어가요. 마지막 라운드면 바로 추천.
+  'situation-pass': () => {
+    delete state.answers[activeQuestions()[state.questionIndex].key];
+    if (state.questionIndex >= activeQuestions().length - 1) return fetchRecommendations();
+    state.questionIndex += 1;
+    setDirection('forward');
+    render();
+  },
   'situation-skip': () => fetchRecommendations(),
   'situation-back': () => {
     if (state.questionIndex === 0) return go('home', { back: true });
@@ -591,6 +634,30 @@ const actions = {
     state.rec = { status: 'ready', items: [item], index: 0, refine: null };
     confirmChoice();
   },
+
+  // 세부 취향 (좋아요/싫어요 칩)
+  'open-tastes': () => openTastes(),
+  'tastes-category': (el) => {
+    state.tastes.category = el.dataset.category;
+    render();
+  },
+  'tastes-toggle': (el) => {
+    // 선택 안 함 → 좋아요 → 싫어요 → 선택 안 함 순서로 돌아요.
+    const { like, dislike } = state.tastes.draft;
+    const tag = el.dataset.tag;
+    if (like.includes(tag)) {
+      state.tastes.draft.like = like.filter((item) => item !== tag);
+      state.tastes.draft.dislike = [...dislike, tag];
+    } else if (dislike.includes(tag)) {
+      state.tastes.draft.dislike = dislike.filter((item) => item !== tag);
+    } else {
+      state.tastes.draft.like = [...like, tag];
+    }
+    render();
+  },
+  'tastes-save': () => saveTastes(),
+  'tastes-back': () => go('profile', { back: true }),
+  'tastes-retry': () => openTastes(state.tastes.category),
 
   // 내 취향
   'edit-step': (el) => {

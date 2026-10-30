@@ -1,6 +1,6 @@
 // 앱 전체 상태와, 여러 화면이 함께 쓰는 작은 도우미 함수들이에요.
 import { CONFIG } from './config.js';
-import { CATEGORIES, situationQuestions, SITUATION_DEFAULTS } from './data.js';
+import { CATEGORIES, situationQuestions, SITUATION_DEFAULTS, PLACE_TO_MODE } from './data.js';
 
 export const state = {
   view: 'boot', // 지금 보이는 화면 이름
@@ -18,7 +18,9 @@ export const state = {
   history: { status: 'idle', records: [] },
   chat: { messages: [], status: 'idle' }, // 챗봇 대화 기록 (새로고침하면 비워져요)
   // 카테고리별 5라운드 취향 퀴즈. answers는 서버가 준 보기 id와 pick을 그대로 보관해요.
-  quiz: { status: 'idle', category: null, rounds: [], dimensions: [], index: 0, answers: [], result: null }
+  quiz: { status: 'idle', category: null, rounds: [], dimensions: [], index: 0, answers: [], result: null },
+  // 세부 취향(좋아요/싫어요 칩). schema는 서버의 그룹 목록, draft는 저장 전 편집본이에요.
+  tastes: { status: 'idle', schema: null, category: 'eat', draft: { like: [], dislike: [] } }
 };
 
 export const RATING = {
@@ -52,19 +54,28 @@ export function categoryInfo(id = state.category) {
 }
 
 export function emptyProfile() {
-  return { food: [], style: [], activity: [], budgetRange: null, activeTime: null, radius: null, avoid: [], preferences: {} };
+  return { food: [], style: [], activity: [], budgetRange: null, activeTime: null, radius: null, avoid: [], preferences: {}, tastes: { like: [], dislike: [] } };
 }
 
-// config에서 '혼자/같이' 질문을 껐으면 빼고 보여줘요.
+// 카테고리별 5문항. (ASK_WITH 설정은 더 이상 쓰지 않지만 config 호환을 위해 남겨 둬요)
 export function activeQuestions() {
   return situationQuestions(state.category).filter((question) => CONFIG.ASK_WITH || question.key !== 'with');
 }
 
-// 답하지 않은 상황 질문은 기본값으로 채워요.
+// 답하지 않은 상황 질문은 기본값으로 채워요. 'prefer:*' 답은 하나의 prefer 배열로 모아요.
 export function filledContext() {
-  const answers = { ...state.answers };
-  for (const key of ['mood', 'budget', 'time', 'with']) answers[key] = answers[key] || SITUATION_DEFAULTS[key];
-  answers.mode = answers.mode || SITUATION_DEFAULTS.mode[state.category];
+  const answers = {};
+  const prefer = [];
+  for (const [key, value] of Object.entries(state.answers)) {
+    if (!value) continue; // "상관없어요"는 보내지 않아요
+    if (key.startsWith('prefer')) prefer.push(value);
+    else answers[key] = value;
+  }
+  answers.time = answers.time || SITUATION_DEFAULTS.time;
+  // 활동은 장소 칩으로 방식을 정하고, 그 외엔 기본 방식
+  const placeMode = state.category === 'do' ? PLACE_TO_MODE[state.answers['prefer:place']] : null;
+  answers.mode = answers.mode || placeMode || SITUATION_DEFAULTS.mode[state.category];
+  if (prefer.length) answers.prefer = prefer;
   answers.weather = state.context.weather?.code || null;
   return answers;
 }

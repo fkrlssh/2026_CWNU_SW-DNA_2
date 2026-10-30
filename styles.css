@@ -947,3 +947,16 @@ h1 { font-size: 24px; line-height: 1.35; font-weight: 800; letter-spacing: -.03e
   .place-preview-panel li strong, .place-preview-panel li span { grid-column: 1; }
   .place-preview-panel a { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
 }
+
+/* ───────── 세부 취향(좋아요/싫어요 칩) · 범주형 상황 질문 ───────── */
+.chip.dislike { background: var(--color-danger-soft); border-color: var(--color-danger); color: var(--color-danger-text); text-decoration: line-through; }
+.seg { display: flex; gap: 8px; margin: var(--space-3) 0 var(--space-2); }
+.seg-tab { flex: 1; min-height: 42px; border: 1px solid var(--color-border); border-radius: var(--radius-chip); background: var(--color-bg); font-size: 14px; }
+.seg-tab.active { background: var(--color-primary); border-color: var(--color-primary); font-weight: 700; }
+.taste-group { margin-top: var(--space-4); }
+.taste-group h2 { margin: 0 0 10px; font-size: 15px; color: var(--color-text-sub); }
+.tastes-cta { display: grid; gap: 8px; }
+.tastes-cta .pick-count { margin: 0; text-align: center; }
+.situation-chips { margin-top: var(--space-4); gap: 10px; }
+.situation-chips .chip { min-height: 48px; padding: 0 18px; font-size: 16px; }
+.situation-links { display: grid; gap: 6px; justify-items: center; margin-top: var(--space-4); }
