@@ -209,6 +209,9 @@ const serverApi = {
     const { history } = await request('/api/history');
     return { records: fromServerHistory(history) };
   },
+  async getPlaces({ category, itemId }) {
+    return request('/api/places', { method: 'POST', body: { category, itemId } });
+  },
   // messages: [{ role: 'user'|'assistant', content }], onDelta: 답변 글자가 올 때마다 호출
   async chat({ messages, context = {}, excludeIds = [], onDelta }) {
     const response = await request('/api/chat', {

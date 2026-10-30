@@ -2,7 +2,8 @@
 // 답변은 글자가 흘러나오듯 보이고(스트리밍), 함께 온 추천은 카드로 보여줘서 바로 결정할 수 있어요.
 import { state } from '../state.js';
 import { escapeHtml } from '../components.js';
-import { brandIcon } from '../brand.js';
+
+const chatbotAvatar = `./icon_images/${encodeURIComponent('챗봇 갈색 아기 동물 캐릭터.png')}`;
 
 export const CHAT_SUGGESTIONS = ['오늘 저녁 뭐 먹지?', '비 오는 날 뭐 하고 놀지?', '출근할 때 뭐 입을까?'];
 
@@ -20,7 +21,7 @@ function bubble(message, index) {
   const classes = ['bubble', 'bot', message.pending ? 'pending' : '', message.error || message.degraded ? 'muted' : ''].filter(Boolean).join(' ');
   const text = message.content || (message.pending ? '' : '…');
   return `<div class="bot-row">
-    <span class="bot-avatar" aria-hidden="true"><img src="${brandIcon}" alt="" /></span>
+    <span class="bot-avatar" aria-hidden="true"><img src="${chatbotAvatar}" alt="" /></span>
     <div class="bot-col">
       <div class="${classes}" ${message.pending ? 'id="chat-streaming"' : ''}>${escapeHtml(text)}${message.pending && !text ? '<span class="typing" aria-label="답변 쓰는 중"><i></i><i></i><i></i></span>' : ''}</div>
       ${recommendationCards(message, index)}
