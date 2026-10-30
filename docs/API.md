@@ -54,6 +54,36 @@
 - 슬라이더 값은 취향 규칙 생성(AI)에 쓰지 않고 추천 시점에 덧씌우므로, 바꿔도 `POST /api/rules/generate`를 다시 부를 필요가 없고 토큰도 들지 않습니다. 알레르기 같은 하드 필터보다 우선하지 않습니다.
 - 모르는 축 키나 범위 밖 값은 `INVALID_PROFILE`(400)입니다.
 
+### 취향 퀴즈 (5라운드 3중 1택)
+
+슬라이더를 직접 보여 주는 대신, 카테고리별로 5번 "셋 중 하나"를 고르게 해서 축 값을 잡는 방식입니다. 마지막 선택 직후 추천이 함께 옵니다.
+
+`GET /api/preferences/quiz?category=eat` (`rounds`는 선택, 1~7, 기본 5)
+
+```json
+{ "category": "eat", "rounds": [
+  { "round": 1, "focus": "spicy", "question": "매운맛: 셋 중 지금 더 끌리는 건?",
+    "options": [ { "itemId": "kimchi-stew", "title": "김치찌개와 흰쌀밥", "emoji": "🍲", "scene": "실패 없는 집밥" }, { "...": "..." }, { "...": "..." } ] }
+] }
+```
+
+- 라운드마다 초점 축 하나를 두고 그 축의 양쪽 항목이 보기에 모두 들어가며, 세 번째 보기는 다른 축에서 갈리는 항목이라 한 라운드가 여러 축을 동시에 측정합니다.
+- 알레르기·기피 항목은 보기에서 빠지고, 라운드 간 같은 항목이 반복되지 않습니다. 매번 보기가 섞이므로 다시 해도 다른 문항이 나옵니다.
+
+`POST /api/preferences/quiz` — 보기 id 와 고른 id 를 그대로 돌려보냅니다. 건너뛴 라운드는 `pick: null`.
+
+```json
+{ "category": "eat", "answers": [ { "options": ["kimchi-stew", "naengmyeon", "poke"], "pick": "kimchi-stew" }, { "...": "..." } ] }
+```
+
+응답 `{ category, preferences, measured, evidence, items, engine }`:
+- `measured`: 이번 퀴즈로 측정된 축 값(-2~+2). 고른 항목과 버린 항목이 반대편인 축마다 증거를 쌓아, 일관되면 ±2, 엇갈리면 0 에 가깝게, 비교가 한 번뿐이면 ±1 까지만 잡습니다.
+- `preferences`: 기존 슬라이더 값에 `measured`를 덮어쓴 결과이며 **프로필에 바로 저장**됩니다(별도 `PUT /api/profile` 불필요, 규칙 재생성도 불필요).
+- `evidence`: 축별 `{ value, label, side }` — 결과 화면이나 레이더 차트에 "매운맛: 매운 게 좋아요"처럼 보여 주는 용도.
+- `items`: 저장된 취향으로 바로 뽑은 해당 카테고리 추천 3개(`/api/recommend`와 같은 형식).
+
+잘못된 보기·선택은 `INVALID_QUIZ`(400)입니다.
+
 ## 상황과 추천
 
 `GET /api/context`는 `weather`, `temperature`, `timeSlot`, `source`를 반환합니다.

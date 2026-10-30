@@ -139,6 +139,21 @@ test('백엔드 B 핵심 API 흐름', async () => {
   const rulesRow = db.prepare('SELECT answers_hash FROM rules WHERE user_id = ?').get(userId);
   assert.equal(rulesRow.answers_hash, db.prepare('SELECT answers_hash FROM rules WHERE user_id = ?').get(userId).answers_hash, '슬라이더 변경은 규칙을 다시 만들지 않는다');
 
+  const quiz = await request('/api/preferences/quiz?category=eat', { userId });
+  assert.equal(quiz.response.status, 200);
+  assert.equal(quiz.json.rounds.length, 5);
+  assert.ok(quiz.json.rounds.every((round) => round.options.length === 3 && round.options.every((o) => o.itemId && o.title)));
+  const quizAnswers = quiz.json.rounds.map((round) => ({ options: round.options.map((o) => o.itemId), pick: round.options[0].itemId }));
+  const scored = await request('/api/preferences/quiz', { method: 'POST', userId, body: { category: 'eat', answers: quizAnswers } });
+  assert.equal(scored.response.status, 200);
+  assert.equal(scored.json.items.length, 3, '채점 응답에 추천 3개가 함께 온다');
+  assert.ok(Object.keys(scored.json.evidence).length > 0);
+  const profileAfterQuiz = await request('/api/profile', { userId });
+  assert.deepEqual(profileAfterQuiz.json.profile.preferences ?? {}, scored.json.preferences, '퀴즈 결과가 프로필에 저장된다');
+  const badQuiz = await request('/api/preferences/quiz', { method: 'POST', userId, body: { category: 'eat', answers: [{ options: ['a', 'b', 'c'], pick: 'z' }] } });
+  assert.equal(badQuiz.response.status, 400);
+  assert.equal(badQuiz.json.error.code, 'INVALID_QUIZ');
+
   const badPreference = await request('/api/profile', { method: 'PUT', userId, body: { answers: { ...profile, preferences: { spicy: 9 } } } });
   assert.equal(badPreference.response.status, 400);
   assert.equal(badPreference.json.error.code, 'INVALID_PROFILE');

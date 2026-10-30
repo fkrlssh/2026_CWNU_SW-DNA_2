@@ -3,6 +3,7 @@ import { CATALOG } from '../data.js';
 import {
   applyFeedback,
   applyPreferences,
+  buildQuiz,
   chat,
   findPlaces,
   generateRules,
@@ -10,6 +11,7 @@ import {
   recommend,
   resolveRulesProvider,
   sanitizePreferences,
+  scoreQuiz,
 } from './backend_A/ai/index.js';
 
 const budgetByLabel = {
@@ -110,6 +112,22 @@ export function chatWithRules({ rules, messages, context = {}, excludeIds = [], 
     onDelta,
     onStatus,
   });
+}
+
+// 퀴즈 보기로 쓸 수 있는 항목: 알레르기·기피·가격 상한 등 하드 필터를 통과한 것만 (recommend 의 필터를 재사용)
+function quizCatalog(rules, category) {
+  const catalog = (CATALOG[category] || []).map((item) => normalizeItem(item, category));
+  return recommend({ rules, context: {}, catalog, limit: catalog.length, random: () => 0 }).map((r) => r.item);
+}
+
+export function quizForRules({ rules, category, rounds }) {
+  return buildQuiz({ category, catalog: quizCatalog(rules, category), rounds });
+}
+
+// 퀴즈 답 채점 → 기존 preferences 에 측정된 축만 덮어쓴 새 preferences 와 축별 요약
+export function scoreQuizForRules({ rules, category, answers, preferences }) {
+  const { measured, evidence } = scoreQuiz({ category, catalog: quizCatalog(rules, category), answers });
+  return { preferences: { ...sanitizePreferences(preferences), ...measured }, measured, evidence };
 }
 
 // 추천 항목 근처의 실제 장소. radiusKm 우선순위: 요청값 → 온보딩 반경(rules.hard.radius_km) → PLACES_RADIUS_KM

@@ -10,9 +10,11 @@ import {
   findCatalogItem,
   placesForItem,
   profileHash,
+  quizForRules,
   recommendWithRules,
   rulesForProfile,
   rulesProviderName,
+  scoreQuizForRules,
 } from '../recommendation-adapter.js';
 import { preferenceSchema } from '../backend_A/ai/index.js';
 import { fetchContext } from '../weather.js';
@@ -23,6 +25,7 @@ import {
   validateMessages,
   validatePlacesRequest,
   validateProfile,
+  validateQuizAnswers,
   validateRefine,
 } from '../validation.js';
 
@@ -83,6 +86,50 @@ apiRouter.post('/rules/generate', async (req, res, next) => {
 });
 
 apiRouter.get('/context', async (_req, res) => res.json(await fetchContext()));
+
+function loadProfile(userId) {
+  const row = db.prepare('SELECT answers FROM profiles WHERE user_id = ?').get(userId);
+  return row ? parseJson(row.answers, {}) : {};
+}
+
+// 취향 퀴즈 문항: 라운드마다 항목 3개. 알레르기·기피 항목은 보기에서 빠진다.
+apiRouter.get('/preferences/quiz', async (req, res, next) => {
+  const category = String(req.query.category || '');
+  if (!['eat', 'wear', 'do'].includes(category)) {
+    return next(Object.assign(new Error('category는 eat, wear, do 중 하나여야 합니다.'), { status: 400, code: 'INVALID_CATEGORY' }));
+  }
+  const rounds = req.query.rounds === undefined ? undefined : Number(req.query.rounds);
+  if (rounds !== undefined && (!Number.isInteger(rounds) || rounds < 1 || rounds > 7)) {
+    return next(Object.assign(new Error('rounds는 1~7 사이 정수여야 합니다.'), { status: 400, code: 'INVALID_QUIZ' }));
+  }
+  const profile = loadProfile(req.userId);
+  try {
+    const rules = await getOrCreateRules(req.userId, profile, { allowAi: false });
+    res.json(quizForRules({ rules, category, rounds }));
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 퀴즈 답 채점: 측정된 축을 프로필 preferences 에 덮어써 저장하고, 그 카테고리 추천을 함께 돌려준다.
+apiRouter.post('/preferences/quiz', async (req, res, next) => {
+  const { category, answers } = req.body || {};
+  try { validateQuizAnswers({ category, answers }); } catch (error) { return next(error); }
+  const profile = loadProfile(req.userId);
+  try {
+    const rules = await getOrCreateRules(req.userId, profile, { allowAi: false });
+    const { preferences, measured, evidence } = scoreQuizForRules({ rules, category, answers, preferences: profile.preferences });
+    const nextProfile = { ...profile, preferences };
+    db.prepare(`
+      INSERT INTO profiles (user_id, answers, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(user_id) DO UPDATE SET answers = excluded.answers, updated_at = CURRENT_TIMESTAMP
+    `).run(req.userId, JSON.stringify(nextProfile));
+    const items = recommendWithRules({ rules: rulesForProfile(rules, nextProfile), category, context: {} });
+    res.json({ category, preferences, measured, evidence, items, engine: rules.meta?.source || 'fallback' });
+  } catch (error) {
+    next(error);
+  }
+});
 
 apiRouter.post('/recommend', async (req, res, next) => {
   const { category, context = {}, refine = null, excludeIds = [] } = req.body || {};

@@ -91,6 +91,20 @@ export function validatePlacesRequest({ category, itemId, radiusKm, location }) 
   }
 }
 
+export function validateQuizAnswers({ category, answers }) {
+  if (!['eat', 'wear', 'do'].includes(category)) fail('INVALID_CATEGORY', 'category는 eat, wear, do 중 하나여야 합니다.');
+  if (!Array.isArray(answers) || answers.length === 0 || answers.length > 7) fail('INVALID_QUIZ', 'answers는 1~7개의 배열이어야 합니다.');
+  for (const answer of answers) {
+    if (!isPlainObject(answer) || !Array.isArray(answer.options) || answer.options.length < 2 || answer.options.length > 3
+      || answer.options.some((id) => typeof id !== 'string' || !id || id.length > 100)) {
+      fail('INVALID_QUIZ', '각 답은 { options: [itemId 2~3개], pick: itemId | null } 형식이어야 합니다.');
+    }
+    if (answer.pick !== null && answer.pick !== undefined && !answer.options.includes(answer.pick)) {
+      fail('INVALID_QUIZ', 'pick은 options 중 하나이거나 null 이어야 합니다.');
+    }
+  }
+}
+
 export function validateMessages(messages) {
   if (!Array.isArray(messages) || messages.length === 0 || messages.length > 20) {
     fail('INVALID_MESSAGES', 'messages는 1~20개의 배열이어야 합니다.');
