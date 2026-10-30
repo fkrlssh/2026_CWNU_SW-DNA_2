@@ -239,14 +239,16 @@ function renderPlaceResults(panel, result) {
   const list = document.createElement('ul');
   for (const place of result.places) {
     const item = document.createElement('li');
+    const name = document.createElement('strong');
+    name.textContent = place.name;
+    const meta = document.createElement('span');
+    meta.textContent = `${place.address}${place.distanceM === null || place.distanceM === undefined ? '' : ` · ${place.distanceM}m`}`;
     const link = document.createElement('a');
-    link.textContent = place.name;
+    link.textContent = '카카오맵 열기 ↗';
     link.href = place.mapUrl;
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
-    const meta = document.createElement('span');
-    meta.textContent = `${place.address}${place.distanceM === null || place.distanceM === undefined ? '' : ` · ${place.distanceM}m`}`;
-    item.append(link, meta);
+    item.append(name, meta, link);
     list.append(item);
   }
   panel.append(list);
