@@ -3,6 +3,7 @@ import { CATALOG } from '../data.js';
 import {
   applyFeedback,
   chat,
+  findPlaces,
   generateRules,
   normalizeItem,
   recommend,
@@ -91,6 +92,17 @@ export function chatWithRules({ rules, messages, context = {}, excludeIds = [], 
     context: normalizeContext(context),
     excludeIds: Array.isArray(excludeIds) ? excludeIds : [],
     onDelta,
+  });
+}
+
+// 추천 항목 근처의 실제 장소. radiusKm 우선순위: 요청값 → 온보딩 반경(rules.hard.radius_km) → PLACES_RADIUS_KM
+export function placesForItem({ rules, category, itemId, radiusKm, location }) {
+  const item = findCatalogItem(category, itemId);
+  if (!item) return null;
+  return findPlaces({
+    item: normalizeItem(item, category),
+    radiusKm: radiusKm ?? rules?.hard?.radius_km,
+    location,
   });
 }
 

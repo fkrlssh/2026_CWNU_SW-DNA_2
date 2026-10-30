@@ -33,7 +33,10 @@ export const CATALOG = {
     { id: 'market', title: '새로운 동네 빵집 가기', emoji: '🥐', scene: '가까운 곳에서 작은 발견', reason: '멀리 가지 않아도 소소한 즐거움을 만날 수 있어요.', tags: ['산책', '문화생활', '카페', '디저트'], budget: '보통', minutes: 30, moods: ['좋음', '우울'], modes: ['가벼운 외출', '문화생활'], color: 'yellow' },
     { id: 'stretch', title: '창가에서 햇빛 받기', emoji: '☀️', scene: '아주 작게 기분 전환', reason: '창문을 열고 햇빛을 받으며 깊게 숨 쉬어봐요.', tags: ['집콕', '운동'], budget: '저렴', minutes: 10, moods: ['피곤', '우울', '좋음'], modes: ['집콕'], color: 'orange' },
     { id: 'window-shopping', title: '쇼핑몰 가볍게 구경', emoji: '🛍️', scene: '사지 않아도 즐거운 구경', reason: '구경만 해도 기분 전환이 되고 걸음 수도 채워져요.', tags: ['쇼핑', '문화생활'], budget: '보통', minutes: 90, moods: ['좋음', '우울'], modes: ['가벼운 외출', '문화생활'], color: 'pink' },
-    { id: 'cook', title: '간단한 한 그릇 요리', emoji: '🍳', scene: '나를 위한 요리 시간', reason: '직접 만든 한 그릇은 뿌듯함까지 함께 채워줘요.', tags: ['요리', '집콕'], budget: '저렴', minutes: 40, moods: ['좋음', '피곤'], modes: ['집콕'], color: 'orange' }
+    { id: 'cook', title: '간단한 한 그릇 요리', emoji: '🍳', scene: '나를 위한 요리 시간', reason: '직접 만든 한 그릇은 뿌듯함까지 함께 채워줘요.', tags: ['요리', '집콕'], budget: '저렴', minutes: 40, moods: ['좋음', '피곤'], modes: ['집콕'], color: 'orange' },
+    { id: 'karaoke', title: '노래방에서 목청 풀기', emoji: '🎤', scene: '소리 지르며 스트레스 해소', reason: '좋아하는 노래 세 곡이면 답답함이 확 풀려요.', tags: ['문화생활'], budget: '보통', minutes: 60, moods: ['좋음', '우울'], modes: ['가벼운 외출', '문화생활'], color: 'pink' },
+    { id: 'cinema', title: '영화관에서 큰 화면으로', emoji: '🎬', scene: '몰입하는 두 시간', reason: '큰 화면과 소리에 잠기면 머릿속 걱정이 잠시 멈춰요.', tags: ['문화생활'], budget: '보통', minutes: 150, moods: ['좋음', '우울', '피곤'], modes: ['문화생활'], color: 'blue' },
+    { id: 'bowling', title: '볼링 한 게임', emoji: '🎳', scene: '가볍게 몸 쓰며 놀기', reason: '점수 상관없이 공 굴리다 보면 기분이 가벼워져요.', tags: ['운동', '문화생활'], budget: '보통', minutes: 60, moods: ['좋음'], modes: ['가벼운 외출', '문화생활'], color: 'lavender' }
   ]
 };
 

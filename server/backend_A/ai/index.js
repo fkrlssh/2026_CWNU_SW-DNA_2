@@ -4,3 +4,4 @@ export { recommend } from './recommend.js';
 export { applyFeedback } from './feedback.js';
 export { normalizeItem } from './contract.js';
 export { chat } from './chat.js';
+export { findPlaces, placeSearchFor, resolveSearchLocation, clampRadiusKm } from './places.js';

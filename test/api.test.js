@@ -9,6 +9,7 @@ process.env.HARU_DB_PATH = join(testDir, 'test.sqlite');
 process.env.NODE_ENV = 'test';
 process.env.CORS_ORIGINS = 'http://allowed.test';
 delete process.env.OPENAI_API_KEY; // 테스트는 토큰을 쓰지 않는다. 키가 없으면 챗봇은 degraded 응답을 돌려준다.
+delete process.env.KAKAO_REST_KEY; // 장소 검색도 외부 호출 없이 unavailable 응답을 검사한다.
 
 const { app } = await import('../server/app.js');
 const { db } = await import('../server/db.js');
@@ -123,6 +124,25 @@ test('백엔드 B 핵심 API 흐름', async () => {
   });
   assert.equal(longChat.response.status, 400);
   assert.equal(longChat.json.error.code, 'INVALID_MESSAGES');
+
+  const places = await request('/api/places', { method: 'POST', userId, body: { category: 'eat', itemId: 'soup-rice', radiusKm: 1.5 } });
+  assert.equal(places.response.status, 200);
+  assert.equal(places.json.source, 'unavailable', '키가 없으면 빈 결과로 응답한다');
+  assert.deepEqual(places.json.places, []);
+  assert.equal(places.json.keyword, '순두부찌개');
+  assert.equal(places.json.center.label, '상남시장');
+  assert.equal(places.json.radiusKm, 1.5);
+
+  const homePlaces = await request('/api/places', { method: 'POST', userId, body: { category: 'do', itemId: 'home-tea' } });
+  assert.equal(homePlaces.json.source, 'none', '집에서 하는 활동은 지도 없음');
+
+  const badRadius = await request('/api/places', { method: 'POST', userId, body: { category: 'eat', itemId: 'soup-rice', radiusKm: 99 } });
+  assert.equal(badRadius.response.status, 400);
+  assert.equal(badRadius.json.error.code, 'INVALID_RADIUS');
+
+  const unknownItem = await request('/api/places', { method: 'POST', userId, body: { category: 'eat', itemId: 'nope' } });
+  assert.equal(unknownItem.response.status, 400);
+  assert.equal(unknownItem.json.error.code, 'ITEM_NOT_FOUND');
 
   const history = await request('/api/history', { userId });
   assert.equal(history.response.status, 200);

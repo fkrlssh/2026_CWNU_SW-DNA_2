@@ -8,6 +8,7 @@ import {
   chatWithRules,
   createRules,
   findCatalogItem,
+  placesForItem,
   profileHash,
   recommendWithRules,
 } from '../recommendation-adapter.js';
@@ -17,6 +18,7 @@ import {
   validateDecision,
   validateExcludeIds,
   validateMessages,
+  validatePlacesRequest,
   validateProfile,
   validateRefine,
 } from '../validation.js';
@@ -197,5 +199,27 @@ apiRouter.post('/chat', chatLimiter, async (req, res, next) => {
     console.error(error);
     res.write('event: error\ndata: {"code":"CHAT_FAILED"}\n\n');
     res.end();
+  }
+});
+
+// 추천 항목 근처의 실제 장소. 응답: { keyword, center, radiusKm, places, source }
+// source 가 none(지도 없는 항목)·unavailable(키 없음)·error 면 places 는 빈 배열이다.
+apiRouter.post('/places', async (req, res, next) => {
+  const { category, itemId, radiusKm = null, location = null } = req.body || {};
+  try { validatePlacesRequest({ category, itemId, radiusKm, location }); } catch (error) { return next(error); }
+  if (!findCatalogItem(category, itemId)) {
+    return next(Object.assign(new Error('카탈로그에서 항목을 찾을 수 없습니다.'), { status: 400, code: 'ITEM_NOT_FOUND' }));
+  }
+  const row = db.prepare('SELECT answers FROM profiles WHERE user_id = ?').get(req.userId);
+  const profile = row ? parseJson(row.answers, {}) : {};
+  try {
+    const rules = await getOrCreateRules(req.userId, profile);
+    const result = await placesForItem({
+      rules, category, itemId, location,
+      radiusKm: radiusKm === null ? undefined : Number(radiusKm),
+    });
+    res.json(result);
+  } catch (error) {
+    next(error);
   }
 });

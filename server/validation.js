@@ -64,6 +64,22 @@ export function validateDecision({ category, itemId, context }) {
   validateContext(context);
 }
 
+export function validatePlacesRequest({ category, itemId, radiusKm, location }) {
+  if (!['eat', 'wear', 'do'].includes(category)) fail('INVALID_CATEGORY', 'category는 eat, wear, do 중 하나여야 합니다.');
+  if (typeof itemId !== 'string' || !itemId || itemId.length > 100) fail('INVALID_ITEM_ID', 'itemId가 올바르지 않습니다.');
+  if (radiusKm !== undefined && radiusKm !== null) {
+    const radius = Number(radiusKm);
+    if (!Number.isFinite(radius) || radius <= 0 || radius > 20) fail('INVALID_RADIUS', 'radiusKm는 0보다 크고 20 이하여야 합니다.');
+  }
+  if (location !== undefined && location !== null) {
+    const lat = Number(location?.lat);
+    const lng = Number(location?.lng);
+    if (!isPlainObject(location) || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+      fail('INVALID_LOCATION', 'location은 { lat, lng } 숫자 좌표여야 합니다.');
+    }
+  }
+}
+
 export function validateMessages(messages) {
   if (!Array.isArray(messages) || messages.length === 0 || messages.length > 20) {
     fail('INVALID_MESSAGES', 'messages는 1~20개의 배열이어야 합니다.');

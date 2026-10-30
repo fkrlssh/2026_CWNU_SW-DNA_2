@@ -95,8 +95,45 @@
 
 스트리밍은 `Accept: text/event-stream` 헤더를 사용합니다. `data` 이벤트로 `{ "delta": "..." }`가 전송되고 마지막 `done` 이벤트에 전체 응답이 담깁니다.
 
+## 장소 검색 (지도)
+
+추천 항목은 "순두부찌개"처럼 종류라서, 항목별 검색어로 근처 실제 장소를 찾아 지도에 띄웁니다. 음식(`eat`)과 밖에서 하는 활동(`do`)만 해당하며, 옷(`wear`)과 집에서 하는 활동은 `source: "none"`으로 응답합니다.
+
+`POST /api/places`
+
+```json
+{
+  "category": "eat",
+  "itemId": "soup-rice",
+  "radiusKm": 2,
+  "location": { "lat": 35.2222, "lng": 128.6834 }
+}
+```
+
+- `radiusKm`(선택): 0 초과 20 이하. 없으면 온보딩 반경 → `PLACES_RADIUS_KM` 순으로 씁니다. 반경 조절 UI(드래그바)는 이 값만 바꿔 다시 호출하면 됩니다.
+- `location`(선택): `PLACES_LOCATION_MODE=user`일 때만 쓰입니다. 기본 `fixed` 모드에서는 무시하고 고정 좌표(상남시장)에서 검색합니다.
+
+```json
+{
+  "keyword": "순두부찌개",
+  "center": { "lat": 35.2222, "lng": 128.6834, "label": "상남시장", "source": "fixed" },
+  "radiusKm": 2,
+  "places": [
+    { "id": "123", "name": "가게 이름", "category": "한식", "address": "도로명 주소", "phone": "055-000-0000",
+      "lat": 35.22, "lng": 128.68, "distanceM": 350, "mapUrl": "https://place.map.kakao.com/123" }
+  ],
+  "source": "live"
+}
+```
+
+`source`는 `live`(검색), `cache`(10분 내 재사용), `none`(지도 없는 항목), `unavailable`(`KAKAO_REST_KEY` 없음), `error`(검색 실패) 중 하나이며, 어느 경우든 `places`는 배열입니다. 지도는 `center`를 중심으로 `places`를 마커로 그리고, `places`가 비어 있으면 지도를 숨기면 됩니다. 거리순으로 최대 3곳을 돌려줍니다.
+
 ## 운영 설정
 
+- `KAKAO_REST_KEY`: 장소 검색용 Kakao REST API 키. 서버에만 두며 프론트의 지도 SDK는 별도의 JavaScript 키를 씁니다
+- `PLACES_LOCATION_MODE`: `fixed`(기본, 고정 좌표) 또는 `user`(요청 좌표)
+- `PLACES_CENTER_LAT`, `PLACES_CENTER_LNG`, `PLACES_CENTER_LABEL`: 고정 좌표, 기본값 상남시장
+- `PLACES_RADIUS_KM`: 기본 반경(km), 기본값 2
 - `CORS_ORIGINS`: 쉼표로 구분한 허용 프론트 주소
 - `CHAT_RATE_LIMIT_PER_MINUTE`: 사용자별 챗봇 분당 요청 수
 - `OPENAI_API_KEY`: 서버 런타임에만 설정하며 프론트에 전달하지 않음
