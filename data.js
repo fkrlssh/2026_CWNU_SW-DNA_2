@@ -42,7 +42,7 @@ export const CATEGORIES = [
 ];
 
 export const TASTE_GROUPS = [
-  { id: 'food', title: '요즘 끌리는 음식', hint: '하나 이상 골라주세요', choices: ['한식', '양식', '중식', '일식', '분식'] },
-  { id: 'style', title: '자주 입는 스타일', hint: '하나 이상 골라주세요', choices: ['캐주얼', '미니멀', '스트릿', '스포티', '러블리'] },
-  { id: 'activity', title: '좋아하는 시간', hint: '하나 이상 골라주세요', choices: ['집콕', '산책', '운동', '문화생활', '요리'] }
+  { id: 'food', title: '요즘 끌리는 음식', hint: '세 가지 이상 골라주세요', choices: ['한식', '양식', '중식', '일식', '분식'] },
+  { id: 'style', title: '자주 입는 스타일', hint: '세 가지 이상 골라주세요', choices: ['캐주얼', '미니멀', '스트릿', '스포티', '러블리'] },
+  { id: 'activity', title: '좋아하는 시간', hint: '세 가지 이상 골라주세요', choices: ['집콕', '산책', '운동', '문화생활', '요리'] }
 ];
