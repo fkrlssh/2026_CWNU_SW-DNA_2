@@ -3,6 +3,18 @@ import { CATEGORIES } from '../data.js';
 import { state, currentSlot, categoryInfo } from '../state.js';
 import { escapeHtml, choiceCard } from '../components.js';
 
+const MOSAIC_IMAGES = {
+  burger: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=700&q=80',
+  chicken: 'https://images.unsplash.com/photo-1562967916-eb82221dfb92?auto=format&fit=crop&w=700&q=80',
+  pizza: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=700&q=80',
+  jacket: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=700&q=80',
+  cap: 'https://images.unsplash.com/photo-1521369909029-2afed882baee?auto=format&fit=crop&w=700&q=80',
+  jeans: 'https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=700&q=80',
+  game: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=700&q=80',
+  projector: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=700&q=80',
+  reading: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=700&q=80',
+};
+
 function todayLabel() {
   return new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' }).format(new Date());
 }
@@ -46,9 +58,9 @@ export function renderHome() {
           </button>
         </div>
         <div class="home-mosaic" aria-hidden="true">
-          <div class="mosaic-column mosaic-column-a"><span class="mosaic-tile mosaic-photo photo-burger"><img src="/hero_images/amirali-mirhashemian-sc5sTPMrVfk-unsplash.jpg" alt="" /></span><span class="mosaic-tile mosaic-photo photo-chicken"><img src="/hero_images/kevin-kevin-nwmZhwOSVnM-unsplash.jpg" alt="" /></span><span class="mosaic-tile mosaic-photo photo-pizza"><img src="/hero_images/ivan-torres-MQUqbmszGGM-unsplash.jpg" alt="" /></span></div>
-          <div class="mosaic-column mosaic-column-b"><span class="mosaic-tile mosaic-photo photo-jacket"><img src="/hero_images/victoria-priessnitz-VsCBt8j-qg4-unsplash.jpg" alt="" /></span><span class="mosaic-tile mosaic-photo photo-cap"><img src="/hero_images/sonu-kumar-8XZBP38QJFM-unsplash.jpg" alt="" /></span><span class="mosaic-tile mosaic-photo photo-jeans"><img src="/hero_images/jason-leung-EtOMMg1nSR8-unsplash.jpg" alt="" /></span></div>
-          <div class="mosaic-column mosaic-column-c"><span class="mosaic-tile mosaic-photo photo-game"><img src="/hero_images/kade-tyack-u3ruGMN29nk-unsplash.jpg" alt="" /></span><span class="mosaic-tile mosaic-photo photo-projector"><img src="/hero_images/alex-litvin-MAYsdoYpGuk-unsplash.jpg" alt="" /></span><span class="mosaic-tile mosaic-photo photo-reading"><img src="/hero_images/blaz-photo-zMRLZh40kms-unsplash.jpg" alt="" /></span></div>
+          <div class="mosaic-column mosaic-column-a"><span class="mosaic-tile mosaic-photo photo-burger"><img src="${MOSAIC_IMAGES.burger}" alt="" /></span><span class="mosaic-tile mosaic-photo photo-chicken"><img src="${MOSAIC_IMAGES.chicken}" alt="" /></span><span class="mosaic-tile mosaic-photo photo-pizza"><img src="${MOSAIC_IMAGES.pizza}" alt="" /></span></div>
+          <div class="mosaic-column mosaic-column-b"><span class="mosaic-tile mosaic-photo photo-jacket"><img src="${MOSAIC_IMAGES.jacket}" alt="" /></span><span class="mosaic-tile mosaic-photo photo-cap"><img src="${MOSAIC_IMAGES.cap}" alt="" /></span><span class="mosaic-tile mosaic-photo photo-jeans"><img src="${MOSAIC_IMAGES.jeans}" alt="" /></span></div>
+          <div class="mosaic-column mosaic-column-c"><span class="mosaic-tile mosaic-photo photo-game"><img src="${MOSAIC_IMAGES.game}" alt="" /></span><span class="mosaic-tile mosaic-photo photo-projector"><img src="${MOSAIC_IMAGES.projector}" alt="" /></span><span class="mosaic-tile mosaic-photo photo-reading"><img src="${MOSAIC_IMAGES.reading}" alt="" /></span></div>
         </div>
       </section>
       <section class="home-explore" aria-labelledby="explore-title">
