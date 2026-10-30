@@ -128,8 +128,13 @@
 
 `source`는 `live`(검색), `cache`(10분 내 재사용), `none`(지도 없는 항목), `unavailable`(`KAKAO_REST_KEY` 없음), `error`(검색 실패) 중 하나이며, 어느 경우든 `places`는 배열입니다. 지도는 `center`를 중심으로 `places`를 마커로 그리고, `places`가 비어 있으면 지도를 숨기면 됩니다. 거리순으로 최대 3곳을 돌려줍니다.
 
+## 취향 규칙 생성 제공자
+
+`POST /api/rules/generate`의 응답 `status`는 규칙을 만든 제공자입니다: `api`(OpenAI 직접 호출, Structured Outputs), `codex`(Codex CLI), `fallback`(AI 없이 온보딩 칩만으로 만든 기본 규칙). `RULES_PROVIDER`로 고르며 비우면 `OPENAI_API_KEY`가 있을 때 `api`입니다. AI 호출은 사용자당 1회(답변이 같으면 재사용)이고 10~20초, 약 2~5천 토큰이 듭니다. 실패하면 1회 재시도 후 `fallback`으로 응답하며, 이후 다시 `POST /api/rules/generate`를 부르면 AI로 재시도합니다.
+
 ## 운영 설정
 
+- `RULES_PROVIDER`: `api` | `codex` | `fallback`. `OPENAI_RULES_MODEL`로 규칙 생성 모델을 따로 지정할 수 있습니다
 - `KAKAO_REST_KEY`: 장소 검색용 Kakao REST API 키. 서버에만 두며 프론트의 지도 SDK는 별도의 JavaScript 키를 씁니다
 - `PLACES_LOCATION_MODE`: `fixed`(기본, 고정 좌표) 또는 `user`(요청 좌표)
 - `PLACES_CENTER_LAT`, `PLACES_CENTER_LNG`, `PLACES_CENTER_LABEL`: 고정 좌표, 기본값 상남시장

@@ -73,5 +73,15 @@ export function validateRules(rules, answers = {}) {
       errors.push(`reasons.${feature}: ${MAX_REASON_LENGTH}자 이내`);
     }
   }
+  // reasons_by_type 은 선택 항목(폴백 규칙이 씀). 있으면 같은 형식 규칙을 적용한다.
+  for (const [type, byType] of Object.entries(rules?.reasons_by_type ?? {})) {
+    if (!TYPES.includes(type)) errors.push(`reasons_by_type 의 잘못된 type: ${type}`);
+    for (const [feature, text] of Object.entries(byType ?? {})) {
+      if (!isValidFeature(feature)) errors.push(`reasons_by_type.${type} 의 잘못된 feature: ${feature}`);
+      if (typeof text !== 'string' || text.length > MAX_REASON_LENGTH) {
+        errors.push(`reasons_by_type.${type}.${feature}: ${MAX_REASON_LENGTH}자 이내`);
+      }
+    }
+  }
   return errors;
 }

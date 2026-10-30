@@ -7,6 +7,7 @@ import {
   generateRules,
   normalizeItem,
   recommend,
+  resolveRulesProvider,
 } from './backend_A/ai/index.js';
 
 const budgetByLabel = {
@@ -60,12 +61,15 @@ export function normalizeContext(context = {}) {
   };
 }
 
+// 규칙 생성 제공자 이름: api(OpenAI 직접 호출) · codex(Codex CLI) · fallback(AI 없음)
+export function rulesProviderName() {
+  return resolveRulesProvider().name;
+}
+
 export async function createRules(profile = {}) {
   const answers = normalizeProfile(profile);
-  if (process.env.CODEX_ENABLED === 'true') return generateRules(answers);
-  return generateRules(answers, {
-    run: async () => { throw new Error('CODEX_ENABLED가 true가 아니므로 폴백 규칙을 사용합니다.'); },
-  });
+  const provider = resolveRulesProvider();
+  return generateRules(answers, { run: provider.run, source: provider.name });
 }
 
 export function recommendWithRules({ rules, category, context = {}, excludeIds = [], refine = null }) {

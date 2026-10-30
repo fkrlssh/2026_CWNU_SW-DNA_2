@@ -11,6 +11,7 @@ import {
   placesForItem,
   profileHash,
   recommendWithRules,
+  rulesProviderName,
 } from '../recommendation-adapter.js';
 import { fetchContext } from '../weather.js';
 import {
@@ -28,8 +29,8 @@ export const apiRouter = Router();
 async function getOrCreateRules(userId, profile, { retryFallback = false } = {}) {
   const answersHash = profileHash(profile);
   const saved = db.prepare('SELECT rules, source, answers_hash FROM rules WHERE user_id = ?').get(userId);
-  // 장애로 저장된 폴백은 규칙 생성 요청 때 Codex 로 다시 시도한다.
-  const retry = retryFallback && saved?.source === 'fallback' && process.env.CODEX_ENABLED === 'true';
+  // 장애로 저장된 폴백은 규칙 생성 요청 때 AI 제공자로 다시 시도한다.
+  const retry = retryFallback && saved?.source === 'fallback' && rulesProviderName() !== 'fallback';
   if (saved?.answers_hash === answersHash && !retry) return parseJson(saved.rules, null);
 
   const rules = await createRules(profile);
@@ -37,7 +38,7 @@ async function getOrCreateRules(userId, profile, { retryFallback = false } = {})
     INSERT INTO rules (user_id, rules, source, answers_hash, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(user_id) DO UPDATE SET rules = excluded.rules, source = excluded.source,
       answers_hash = excluded.answers_hash, created_at = CURRENT_TIMESTAMP
-  `).run(userId, JSON.stringify(rules), rules.meta?.source || 'fallback', answersHash);
+  `).run(userId, JSON.stringify(rules), rules.meta?.source === 'fallback' ? 'fallback' : 'codex', answersHash);
   return rules;
 }
 

@@ -65,7 +65,9 @@ function refineAdjustment(item, refine, excludedTags) {
 }
 
 // 가중치 기여가 큰 순서의 이유 문구 목록. 끝에 항목 고유 문구를 둬서 후보끼리 겹칠 때 대체할 수 있게 한다.
-function rankedReasons(item, weightSets, reasons) {
+// reasons_by_type(선택) 에 항목 type 전용 문구가 있으면 그것을 우선한다.
+function rankedReasons(item, weightSets, rules) {
+  const reasons = { ...rules.reasons, ...(rules.reasons_by_type?.[item.type] ?? {}) };
   const contributions = new Map();
   for (const weights of weightSets) {
     for (const feature of itemFeatures(item)) {
@@ -113,7 +115,7 @@ export function recommend({ rules, context, catalog, excludeIds = [], refine, ra
         + contextFit(item, context)
         + refineAdjustment(item, refine, excludedTags)
         + novelty * NOVELTY_SPREAD * random();
-      return { item, reasons: rankedReasons(item, weightSets, rules.reasons), score };
+      return { item, reasons: rankedReasons(item, weightSets, rules), score };
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, RESULT_COUNT);

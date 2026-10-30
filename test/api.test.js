@@ -10,6 +10,8 @@ process.env.NODE_ENV = 'test';
 process.env.CORS_ORIGINS = 'http://allowed.test';
 delete process.env.OPENAI_API_KEY; // 테스트는 토큰을 쓰지 않는다. 키가 없으면 챗봇은 degraded 응답을 돌려준다.
 delete process.env.KAKAO_REST_KEY; // 장소 검색도 외부 호출 없이 unavailable 응답을 검사한다.
+delete process.env.RULES_PROVIDER; // 키가 없으므로 규칙 생성은 폴백이어야 한다.
+delete process.env.CODEX_ENABLED;
 
 const { app } = await import('../server/app.js');
 const { db } = await import('../server/db.js');
