@@ -1,3 +1,4 @@
+import { normalizeExclusions } from './allergens.js';
 import { MAX_PRICE_BY_BUDGET, TAGS } from './contract.js';
 
 const MAX_LIKED_TAGS = 6;
@@ -43,7 +44,7 @@ export function buildFallbackRules(answers = {}) {
     persona: '입력한 취향을 바탕으로 한 기본 추천',
     weights: { always, ...BASE_WEIGHTS },
     hard: {
-      exclude_tags: [...new Set([...(answers.allergies ?? []), ...(answers.dislikes ?? [])])],
+      exclude_tags: normalizeExclusions([...(answers.allergies ?? []), ...(answers.dislikes ?? [])]),
       exclude_types: [],
       max_price_level: MAX_PRICE_BY_BUDGET[answers.budget] ?? 2,
       radius_km: answers.radiusKm ?? 3,

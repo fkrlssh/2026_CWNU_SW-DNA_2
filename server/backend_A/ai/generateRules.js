@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { normalizeExclusions } from './allergens.js';
 import { runCodex } from './codexRunner.js';
 import { buildFallbackRules } from './fallback.js';
 import { buildPrompt } from './prompt.js';
@@ -26,11 +27,16 @@ export async function generateRules(profileAnswers, { run = runCodex } = {}) {
   const answersHash = hashAnswers(profileAnswers);
   if (cache.has(answersHash)) return structuredClone(cache.get(answersHash));
 
+  const answers = {
+    ...profileAnswers,
+    allergies: normalizeExclusions(profileAnswers.allergies),
+    dislikes: normalizeExclusions(profileAnswers.dislikes),
+  };
   let errors = [];
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     try {
-      const rules = await run(buildPrompt(profileAnswers, errors));
-      errors = validateRules(rules, profileAnswers);
+      const rules = await run(buildPrompt(answers, errors));
+      errors = validateRules(rules, answers);
       if (errors.length === 0) {
         const result = { ...rules, meta: { source: 'codex', answersHash } };
         cache.set(answersHash, result);
@@ -43,5 +49,5 @@ export async function generateRules(profileAnswers, { run = runCodex } = {}) {
   }
 
   // 폴백은 캐시하지 않는다. 장애가 풀리면 다음 요청에서 Codex 를 다시 시도한다.
-  return { ...buildFallbackRules(profileAnswers), meta: { source: 'fallback', answersHash } };
+  return { ...buildFallbackRules(answers), meta: { source: 'fallback', answersHash } };
 }

@@ -13,10 +13,12 @@ import { fetchContext } from '../weather.js';
 
 export const apiRouter = Router();
 
-async function getOrCreateRules(userId, profile) {
+async function getOrCreateRules(userId, profile, { retryFallback = false } = {}) {
   const answersHash = profileHash(profile);
-  const saved = db.prepare('SELECT rules, answers_hash FROM rules WHERE user_id = ?').get(userId);
-  if (saved?.answers_hash === answersHash) return parseJson(saved.rules, null);
+  const saved = db.prepare('SELECT rules, source, answers_hash FROM rules WHERE user_id = ?').get(userId);
+  // 장애로 저장된 폴백은 규칙 생성 요청 때 Codex 로 다시 시도한다.
+  const retry = retryFallback && saved?.source === 'fallback' && process.env.CODEX_ENABLED === 'true';
+  if (saved?.answers_hash === answersHash && !retry) return parseJson(saved.rules, null);
 
   const rules = await createRules(profile);
   db.prepare(`
@@ -55,7 +57,7 @@ apiRouter.post('/rules/generate', async (req, res, next) => {
   const profile = db.prepare('SELECT answers FROM profiles WHERE user_id = ?').get(req.userId);
   if (!profile) return next(Object.assign(new Error('프로필을 먼저 저장해주세요.'), { status: 409, code: 'PROFILE_REQUIRED' }));
   try {
-    const rules = await getOrCreateRules(req.userId, parseJson(profile.answers, {}));
+    const rules = await getOrCreateRules(req.userId, parseJson(profile.answers, {}), { retryFallback: true });
     res.status(202).json({ status: rules.meta?.source || 'fallback', persona: rules.persona });
   } catch (error) {
     next(error);
@@ -98,6 +100,7 @@ apiRouter.post('/decisions/:id/feedback', (req, res, next) => {
   }
   const decision = db.prepare('SELECT id, category, item_id FROM decisions WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!decision) return next(Object.assign(new Error('결정 기록을 찾을 수 없습니다.'), { status: 404, code: 'DECISION_NOT_FOUND' }));
+  const previousRating = db.prepare('SELECT rating FROM feedback WHERE decision_id = ?').get(req.params.id)?.rating;
   db.prepare(`
     INSERT INTO feedback (decision_id, rating, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(decision_id) DO UPDATE SET rating = excluded.rating, created_at = CURRENT_TIMESTAMP
@@ -106,7 +109,13 @@ apiRouter.post('/decisions/:id/feedback', (req, res, next) => {
   if (savedRules) {
     const rules = parseJson(savedRules.rules, null);
     if (rules) {
-      const nextRules = applyFeedbackToRules(rules, decision.category, decision.item_id, rating);
+      // 평가를 바꾸면 이전 반영분을 되돌리고, 같은 평가를 다시 보내면 중복 반영하지 않는다.
+      const opposite = { good: 'bad', bad: 'good' };
+      let nextRules = rules;
+      if (previousRating !== rating) {
+        if (opposite[previousRating]) nextRules = applyFeedbackToRules(nextRules, decision.category, decision.item_id, opposite[previousRating]);
+        nextRules = applyFeedbackToRules(nextRules, decision.category, decision.item_id, rating);
+      }
       db.prepare('UPDATE rules SET rules = ? WHERE user_id = ?').run(JSON.stringify(nextRules), req.userId);
     }
   }

@@ -1,3 +1,4 @@
+import { ALLERGEN_TAGS, normalizeExclusions } from './allergens.js';
 import { itemFeatures } from './contract.js';
 
 const RESULT_COUNT = 3;
@@ -15,7 +16,13 @@ function activeWeights(rules, context) {
 
 // 알레르기·절대 싫은 것은 리파인이나 결과 부족을 이유로 완화하지 않는다.
 function passesHardFilter(item, hard) {
-  return !item.tags.some((tag) => hard.exclude_tags.includes(tag))
+  const excluded = normalizeExclusions(hard.exclude_tags);
+  // 재료 정보가 없는 음식은 안전하다고 볼 수 없으므로 알레르기 사용자에게 내보내지 않는다.
+  const allergenUnknown = item.type === 'food' && !item.allergens
+    && excluded.some((tag) => ALLERGEN_TAGS.includes(tag));
+  const itemTags = [...item.tags, ...(item.allergens ?? [])];
+  return !allergenUnknown
+    && !excluded.some((tag) => itemTags.includes(tag) || item.title?.includes(tag))
     && !hard.exclude_types.includes(item.type)
     && item.price <= hard.max_price_level;
 }

@@ -2,8 +2,8 @@
 
 ## 담당 역할
 
-- 사용자 담당: **백엔드 B — 서버·데이터·배포**
-- 구현 범위: Express 서버, SQLite 데이터 저장, REST API, 날씨 프록시, 백엔드 A 연동 경계, Docker 배포 기반
+- 백엔드 B 담당: 서버·데이터·배포 / 백엔드 A 담당: 추천 엔진·규칙 생성·챗봇 (`server/backend_A`)
+- 백엔드 B 구현 범위: Express 서버, SQLite 데이터 저장, REST API, 날씨 프록시, 백엔드 A 연동 경계, Docker 배포 기반
 
 ## Git 안전 규칙
 

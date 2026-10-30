@@ -66,6 +66,11 @@ test('백엔드 B 핵심 API 흐름', async () => {
   assert.equal(feedback.response.status, 200);
   assert.equal(feedback.json.rulesUpdated, true);
 
+  const savedWeights = () => JSON.parse(db.prepare('SELECT rules FROM rules WHERE user_id = ?').get(userId).rules).weights.always;
+  const afterFirst = savedWeights();
+  await request(`/api/decisions/${decision.json.decisionId}/feedback`, { method: 'POST', userId, body: { rating: 'good' } });
+  assert.deepEqual(savedWeights(), afterFirst, '같은 평가를 다시 보내도 중복 반영하지 않는다');
+
   const history = await request('/api/history', { userId });
   assert.equal(history.response.status, 200);
   assert.equal(history.json.history.length, 1);

@@ -5,8 +5,8 @@ import { buildFallbackRules } from '../ai/fallback.js';
 
 const rules = buildFallbackRules({ budget: 'mid', allergies: ['seafood'] });
 const catalog = [
-  { id: 'soup', title: '국밥', tags: ['한식'], price: 1, type: 'food' },
-  { id: 'sushi', title: '초밥', tags: ['일식', 'seafood'], price: 2, type: 'food' },
+  { id: 'soup', title: '국밥', tags: ['한식'], price: 1, type: 'food', allergens: [] },
+  { id: 'sushi', title: '초밥', tags: ['일식'], price: 2, type: 'food', allergens: ['seafood'] },
   { id: 'walk', title: '산책', tags: ['산책'], price: 1, type: 'do' },
 ];
 const ask = [{ role: 'user', content: '저녁 뭐 먹죠?' }];

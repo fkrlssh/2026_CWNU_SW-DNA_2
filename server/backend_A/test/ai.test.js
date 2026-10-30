@@ -12,12 +12,12 @@ const answers = {
 };
 
 const catalog = [
-  { id: 'a', title: '국밥', tags: ['한식', 'comfort', 'delivery'], price: 1, type: 'food' },
-  { id: 'b', title: '떡볶이', tags: ['분식', 'delivery'], price: 1, type: 'food' },
-  { id: 'c', title: '파스타', tags: ['양식', 'outdoor'], price: 2, type: 'food' },
-  { id: 'd', title: '비빔밥', tags: ['한식', 'light'], price: 2, type: 'food' },
-  { id: 'e', title: '초밥', tags: ['일식', 'seafood'], price: 2, type: 'food' },
-  { id: 'f', title: '코스요리', tags: ['양식'], price: 3, type: 'food' },
+  { id: 'a', title: '국밥', tags: ['한식', 'comfort', 'delivery'], price: 1, type: 'food', allergens: [] },
+  { id: 'b', title: '떡볶이', tags: ['분식', 'delivery'], price: 1, type: 'food', allergens: [] },
+  { id: 'c', title: '파스타', tags: ['양식', 'outdoor'], price: 2, type: 'food', allergens: [] },
+  { id: 'd', title: '비빔밥', tags: ['한식', 'light'], price: 2, type: 'food', allergens: [] },
+  { id: 'e', title: '초밥', tags: ['일식', 'seafood'], price: 2, type: 'food', allergens: ['seafood'] },
+  { id: 'f', title: '코스요리', tags: ['양식'], price: 3, type: 'food', allergens: [] },
 ];
 
 const noRandom = () => 0;

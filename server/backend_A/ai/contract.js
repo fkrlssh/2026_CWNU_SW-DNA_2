@@ -1,3 +1,5 @@
+import { ALLERGEN_TAGS, ITEM_ALLERGENS } from './allergens.js';
+
 // 3인 합의 전 임시값. 역할분담.md 부록이 확정되면 이 파일만 고친다.
 
 export const CONTEXT_KEYS = {
@@ -17,7 +19,7 @@ export const TAGS = [
   // AGENTS.md 태그
   'comfort', 'light', 'delivery', 'indoor', 'outdoor', 'group', 'solo',
   // 알레르기 태그
-  'seafood', 'peanut', 'dairy', 'egg', 'wheat',
+  ...ALLERGEN_TAGS,
 ];
 
 export const TYPES = ['food', 'do', 'wear'];
@@ -44,6 +46,7 @@ export function normalizeItem(raw, category) {
     type: raw.type ?? TYPE_BY_CATEGORY[category],
     price: raw.price ?? PRICE_BY_BUDGET_LABEL[raw.budget] ?? 2,
     tags: [...new Set([...(raw.tags ?? []), ...modeTags])],
+    allergens: raw.allergens ?? ITEM_ALLERGENS[raw.id],
   };
 }
 
