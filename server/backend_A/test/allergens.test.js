@@ -17,7 +17,14 @@ test('한국어 알레르기 입력을 태그로 바꾸고 모르는 항목은 �
 });
 
 test('data.js 의 음식은 모두 알레르기 정보를 가진다', () => {
-  for (const item of CATALOG.eat) assert.ok(ITEM_ALLERGENS[item.id], `${item.id} 알레르기 정보 없음`);
+  for (const item of CATALOG.eat) {
+    assert.ok(Array.isArray(item.allergens) || ITEM_ALLERGENS[item.id], `${item.id} 알레르기 정보 없음`);
+  }
+});
+
+test('한국어 알레르기 표기는 normalizeItem 에서 영어 태그로 바뀐다', () => {
+  const item = normalizeItem({ id: 'x', tags: [], budget: '보통', allergens: ['밀', '대두', '견과류'] }, 'eat');
+  assert.deepEqual(item.allergens, ['wheat', 'soy', 'peanut']);
 });
 
 test('해산물 알레르기면 실제 카탈로그에서 해산물 메뉴가 빠진다', () => {

@@ -1,4 +1,4 @@
-import { ALLERGEN_TAGS, ITEM_ALLERGENS } from './allergens.js';
+import { ALLERGEN_TAGS, ITEM_ALLERGENS, normalizeExclusions } from './allergens.js';
 
 // 3인 합의 전 임시값. 역할분담.md 부록이 확정되면 이 파일만 고친다.
 
@@ -67,7 +67,8 @@ export function normalizeItem(raw, category) {
     tags: [...new Set([...(raw.tags ?? []), ...modeTags, ...derivedTags])],
     moodKeys: raw.moodKeys ?? (raw.moods ?? []).map((mood) => MOOD_KEY_BY_LABEL[mood]).filter(Boolean),
     modeKeys: raw.modeKeys ?? [...new Set((raw.modes ?? []).map((mode) => MODE_KEY_BY_LABEL[mode]).filter(Boolean))],
-    allergens: raw.allergens ?? ITEM_ALLERGENS[raw.id],
+    // data.js 는 '밀'·'대두' 같은 한국어로 적고, 필터는 영어 태그로 비교하므로 여기서 통일한다.
+    allergens: raw.allergens ? normalizeExclusions(raw.allergens) : ITEM_ALLERGENS[raw.id],
   };
 }
 
