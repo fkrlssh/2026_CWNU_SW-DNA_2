@@ -33,7 +33,8 @@ const BASE_REASONS = {
 
 // 같은 feature 라도 음식·옷·활동에 맞는 말이 다르다("바깥 공기 쐬기 좋은 날" 은 음식 카드에 어색하다).
 // 엔진은 항목 type 에 맞는 문구를 먼저 찾고, 없으면 BASE_REASONS 를 쓴다.
-const REASONS_BY_TYPE = {
+// export 하는 이유: 이 필드가 생기기 전에 DB 에 저장된 폴백 규칙에도 엔진이 같은 문구를 적용하기 위해서다.
+export const FALLBACK_REASONS_BY_TYPE = {
   food: {
     'tag.light': '속 편하게 가볍게 먹기 좋아요',
     'tag.delivery': '집에서 편하게 받아 먹을 수 있어요',
@@ -87,6 +88,6 @@ export function buildFallbackRules(answers = {}) {
     },
     novelty: answers.noveltyPref === 'new' ? 0.6 : 0.2,
     reasons: { ...BASE_REASONS },
-    reasons_by_type: structuredClone(REASONS_BY_TYPE),
+    reasons_by_type: structuredClone(FALLBACK_REASONS_BY_TYPE),
   };
 }

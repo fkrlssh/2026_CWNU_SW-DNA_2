@@ -38,7 +38,7 @@ function fakeFetch(...turns) {
   return { fetchImpl, requests };
 }
 
-const noSituation = { category: 'food', refine: null, count: null, mood: null, budget: null, time: null, mode: null, weather: null, with: null };
+const noSituation = { category: 'food', refine: null, count: null, exclude_tags: null, exclude_titles: null, mood: null, budget: null, time: null, mode: null, weather: null, with: null };
 
 test('chat: 스트리밍 조각을 전달하고 답변을 돌려준다', async () => {
   const { fetchImpl } = fakeFetch(textTurn('안녕하세요'));
@@ -81,6 +81,25 @@ test('chat: count 로 개수를 요청하면 최대 5개까지 돌려준다', as
   const capped = await chat({ rules, messages: ask, catalog: bigCatalog, apiKey: 'k', fetchImpl: fakeFetch(toolTurn({ ...noSituation, count: 9 }), textTurn('x')).fetchImpl, random: () => 0 });
   assert.equal(capped.recommendations.length, 5, '5개 초과 요청은 5개로 제한');
   assert.ok(JSON.stringify(requests[0].tools[0].parameters).includes('"count"'), '도구 스키마에 count 가 있다');
+});
+
+test('chat: 대화에서 거절한 종류·항목은 exclude_tags·exclude_titles 로 카드에서도 빠진다', async () => {
+  const menu = [
+    { id: 'cake', title: '딸기 케이크와 라떼', tags: ['디저트', '카페'], price: 2, type: 'food', allergens: [] },
+    { id: 'croissant', title: '크루아상과 아메리카노', tags: ['디저트', '카페'], price: 1, type: 'food', allergens: [] },
+    { id: 'gukbap', title: '뜨끈한 돼지국밥', tags: ['한식'], price: 1, type: 'food', allergens: [] },
+    { id: 'jjajang', title: '짜장면 한 그릇', tags: ['중식'], price: 1, type: 'food', allergens: [] },
+  ];
+  const history = [
+    { role: 'user', content: '배고파' },
+    { role: 'assistant', content: '딸기 케이크와 라떼, 크루아상과 아메리카노, 짜장면 한 그릇이 괜찮겠어요.' },
+    { role: 'user', content: '그런데 디저트는 별로야. 짜장면도 말고' },
+  ];
+  const { fetchImpl, requests } = fakeFetch(toolTurn({ ...noSituation, exclude_tags: ['디저트'], exclude_titles: ['짜장면 한 그릇'] }), textTurn('그럼 돼지국밥 어때요?'));
+  const result = await chat({ rules, messages: history, catalog: menu, apiKey: 'k', fetchImpl, random: () => 0 });
+  assert.deepEqual(result.recommendations.map((r) => r.item.id), ['gukbap']);
+  const schema = JSON.stringify(requests[0].tools[0].parameters);
+  assert.ok(schema.includes('"exclude_tags"') && schema.includes('"exclude_titles"'), '도구 스키마에 제외 인자가 있다');
 });
 
 test('chat: 추천은 골랐는데 답변 생성이 실패하면 카드는 유지하고 partial 로 표시한다', async () => {

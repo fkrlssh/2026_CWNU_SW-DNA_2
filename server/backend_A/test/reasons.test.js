@@ -52,6 +52,18 @@ test('폴백 규칙은 항목 종류에 맞는 이유 문구를 쓴다 (음식 �
   }
 });
 
+test('이유 문구 분리 전에 저장된 폴백 규칙(meta.source=fallback)에도 종류별 문구를 적용한다', () => {
+  const old = buildFallbackRules({ budget: 'high' });
+  delete old.reasons_by_type;
+  old.meta = { source: 'fallback', answersHash: 'x' };
+  const eat = CATALOG.eat.map((item) => normalizeItem(item, 'eat'));
+  const foodReasons = new Set(Object.values(buildFallbackRules({}).reasons_by_type.food));
+  const generic = new Set(Object.values(old.reasons));
+  for (const { reason, item } of recommend({ rules: old, context: { mode: 'out' }, catalog: eat, random: noRandom })) {
+    assert.ok(!generic.has(reason) || foodReasons.has(reason), `음식 ${item.id}: 범용 문구 "${reason}"`);
+  }
+});
+
 test('reasons_by_type 이 없는 규칙(AI 생성)은 기존 reasons 를 그대로 쓴다', () => {
   const rules = rulesWithSingleReason();
   delete rules.reasons_by_type;

@@ -1,4 +1,4 @@
-import { CONTEXT_KEYS, TYPES } from './contract.js';
+import { CONTEXT_KEYS, TAGS, TYPES } from './contract.js';
 import { recommend } from './recommend.js';
 
 const API_URL = 'https://api.openai.com/v1/responses';
@@ -29,11 +29,13 @@ const RECOMMEND_TOOL = {
   parameters: {
     type: 'object',
     additionalProperties: false,
-    required: ['category', 'refine', 'count', ...Object.keys(CONTEXT_KEYS)],
+    required: ['category', 'refine', 'count', 'exclude_tags', 'exclude_titles', ...Object.keys(CONTEXT_KEYS)],
     properties: {
       category: { type: 'string', enum: TYPES },
       refine: nullableEnum(REFINES),
       count: { type: ['integer', 'null'], description: '원하는 후보 개수 1~5. 말하지 않았으면 null' },
+      exclude_tags: { type: ['array', 'null'], items: { type: 'string', enum: TAGS }, description: '대화에서 사용자가 싫다·별로다·빼달라고 한 종류(예: 디저트, 한식). 없으면 null' },
+      exclude_titles: { type: ['array', 'null'], items: { type: 'string' }, description: '사용자가 거절한 특정 항목 이름이나 이미 보여줬는데 다른 걸 원할 때 그 이름들. 없으면 null' },
       ...Object.fromEntries(
         Object.entries(CONTEXT_KEYS).map(([key, values]) => [key, nullableEnum(values)]),
       ),
@@ -45,6 +47,7 @@ function buildInstructions(rules) {
   return [
     '너는 일상 결정을 돕는 "하루" 챗봇이다. 친근한 존댓말로 두세 문장 이내로 답하고 이모지는 쓰지 않는다.',
     '먹기·입기·할 일 추천을 원하면 반드시 recommend 도구를 한 번 호출하고, 도구 결과에 있는 항목만 추천한다. 개수를 말하면 count 로 넘긴다(최대 5). 도구가 돌려준 개수가 요청보다 적으면 그 개수만 소개한다.',
+    '대화 중 사용자가 어떤 종류를 싫다·별로다·빼달라고 하면(예: "디저트는 별로야") 그 종류를 exclude_tags 에, 특정 항목을 거절하거나 "다른 거"를 원하면 앞서 말한 항목 이름들을 exclude_titles 에 넣어 도구를 다시 호출한다. 이전 대화의 거절도 계속 지킨다.',
     '추천과 무관한 질문(날씨 예보, 일반 지식, 잡담 등)에는 도구 없이 짧게 답하고, 할 수 있는 일(먹기·입기·할 일 추천)을 한 문장으로 안내한다.',
     '코드 작성, 긴 글쓰기, 번역, 계산 같은 추천 밖의 작업은 수행하지 않고 "그건 제가 도와드리기 어려워요"라고 정중히 말한 뒤 추천으로 안내한다.',
     '알레르기나 재료의 안전을 보장하지 않는다. 건강 문제는 전문가 상담을 권한다.',
@@ -119,14 +122,22 @@ async function callModel(payload, { apiKey, fetchImpl, onDelta }) {
   throw new Error('OpenAI 스트림이 완료 없이 끊겼습니다');
 }
 
+// 대화에서 나온 일시적 제외 조건. 프로필의 알레르기·기피(rules.hard)와 달리 이번 대화에만 적용된다.
+function excludedByConversation(item, excludeTags, excludeTitles) {
+  if (excludeTags.some((tag) => item.tags.includes(tag))) return true;
+  return excludeTitles.some((title) => title && (item.title.includes(title) || title.includes(item.title)));
+}
+
 function runRecommendTool(call, { rules, catalog, context, excludeIds, random }) {
-  const { category, refine, count, ...situation } = JSON.parse(call.arguments);
+  const { category, refine, count, exclude_tags: excludeTags, exclude_titles: excludeTitles, ...situation } = JSON.parse(call.arguments);
   const stated = Object.fromEntries(Object.entries(situation).filter(([, value]) => value !== null));
   const limit = Number.isInteger(count) ? Math.min(MAX_RECOMMEND_COUNT, Math.max(1, count)) : undefined;
+  const tags = Array.isArray(excludeTags) ? excludeTags : [];
+  const titles = Array.isArray(excludeTitles) ? excludeTitles.map((t) => String(t).trim()) : [];
   return recommend({
     rules,
     context: { ...context, ...stated },
-    catalog: catalog.filter((item) => item.type === category),
+    catalog: catalog.filter((item) => item.type === category && !excludedByConversation(item, tags, titles)),
     excludeIds,
     refine: refine ?? undefined,
     limit,

@@ -1,5 +1,6 @@
 import { ALLERGEN_TAGS, normalizeExclusions } from './allergens.js';
 import { itemFeatures } from './contract.js';
+import { FALLBACK_REASONS_BY_TYPE } from './fallback.js';
 
 const RESULT_COUNT = 3;
 const NOVELTY_SPREAD = 4;
@@ -66,8 +67,10 @@ function refineAdjustment(item, refine, excludedTags) {
 
 // 가중치 기여가 큰 순서의 이유 문구 목록. 끝에 항목 고유 문구를 둬서 후보끼리 겹칠 때 대체할 수 있게 한다.
 // reasons_by_type(선택) 에 항목 type 전용 문구가 있으면 그것을 우선한다.
+// 이 필드가 생기기 전에 저장된 폴백 규칙(meta.source=fallback)에는 현재 폴백 문구를 적용한다.
 function rankedReasons(item, weightSets, rules) {
-  const reasons = { ...rules.reasons, ...(rules.reasons_by_type?.[item.type] ?? {}) };
+  const byType = rules.reasons_by_type ?? (rules.meta?.source === 'fallback' ? FALLBACK_REASONS_BY_TYPE : null);
+  const reasons = { ...rules.reasons, ...(byType?.[item.type] ?? {}) };
   const contributions = new Map();
   for (const weights of weightSets) {
     for (const feature of itemFeatures(item)) {
