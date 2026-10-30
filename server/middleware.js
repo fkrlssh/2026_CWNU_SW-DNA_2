@@ -20,8 +20,13 @@ export function notFound(req, _res, next) {
 }
 
 export function errorHandler(error, _req, res, _next) {
-  const status = Number(error.status) || 500;
-  const code = error.code || 'INTERNAL_ERROR';
+  const invalidJson = error.type === 'entity.parse.failed';
+  const tooLarge = error.type === 'entity.too.large';
+  const status = invalidJson ? 400 : tooLarge ? 413 : Number(error.status) || 500;
+  const code = invalidJson ? 'INVALID_JSON' : tooLarge ? 'PAYLOAD_TOO_LARGE' : error.code || 'INTERNAL_ERROR';
   if (status >= 500) console.error(error);
-  res.status(status).json({ error: { code, message: status >= 500 ? '서버 오류가 발생했습니다.' : error.message } });
+  const message = invalidJson ? '올바른 JSON 요청이 아닙니다.'
+    : tooLarge ? '요청 본문이 너무 큽니다.'
+      : status >= 500 ? '서버 오류가 발생했습니다.' : error.message;
+  res.status(status).json({ error: { code, message } });
 }

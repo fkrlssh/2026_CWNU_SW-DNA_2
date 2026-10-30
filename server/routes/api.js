@@ -12,6 +12,14 @@ import {
   recommendWithRules,
 } from '../recommendation-adapter.js';
 import { fetchContext } from '../weather.js';
+import {
+  validateContext,
+  validateDecision,
+  validateExcludeIds,
+  validateMessages,
+  validateProfile,
+  validateRefine,
+} from '../validation.js';
 
 export const apiRouter = Router();
 
@@ -45,9 +53,7 @@ apiRouter.get('/profile', (req, res) => {
 });
 
 apiRouter.put('/profile', (req, res, next) => {
-  if (!req.body?.answers || typeof req.body.answers !== 'object' || Array.isArray(req.body.answers)) {
-    return next(Object.assign(new Error('answers 객체가 필요합니다.'), { status: 400, code: 'INVALID_PROFILE' }));
-  }
+  try { validateProfile(req.body?.answers); } catch (error) { return next(error); }
   db.prepare(`
     INSERT INTO profiles (user_id, answers, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(user_id) DO UPDATE SET answers = excluded.answers, updated_at = CURRENT_TIMESTAMP
@@ -73,6 +79,11 @@ apiRouter.post('/recommend', async (req, res, next) => {
   if (!['eat', 'wear', 'do'].includes(category)) {
     return next(Object.assign(new Error('category는 eat, wear, do 중 하나여야 합니다.'), { status: 400, code: 'INVALID_CATEGORY' }));
   }
+  try {
+    validateContext(context);
+    validateRefine(refine);
+    validateExcludeIds(excludeIds);
+  } catch (error) { return next(error); }
   const row = db.prepare('SELECT answers FROM profiles WHERE user_id = ?').get(req.userId);
   const profile = row ? parseJson(row.answers, {}) : {};
   try {
@@ -86,6 +97,7 @@ apiRouter.post('/recommend', async (req, res, next) => {
 
 apiRouter.post('/decisions', (req, res, next) => {
   const { category, itemId, context = {} } = req.body || {};
+  try { validateDecision({ category, itemId, context }); } catch (error) { return next(error); }
   if (!findCatalogItem(category, itemId)) {
     return next(Object.assign(new Error('카탈로그에서 항목을 찾을 수 없습니다.'), { status: 400, code: 'ITEM_NOT_FOUND' }));
   }
@@ -154,10 +166,11 @@ const chatLimiter = rateLimit({
 // Accept: text/event-stream 이면 data: {"delta"} 조각을 흘려보낸 뒤 event: done 에 같은 본문을 담는다.
 apiRouter.post('/chat', chatLimiter, async (req, res, next) => {
   const { messages, context = {}, excludeIds = [] } = req.body || {};
-  const last = Array.isArray(messages) ? messages.at(-1) : null;
-  if (last?.role !== 'user' || typeof last.content !== 'string' || !last.content.trim()) {
-    return next(Object.assign(new Error('messages 배열의 마지막 항목은 내용이 있는 사용자 메시지여야 합니다.'), { status: 400, code: 'INVALID_MESSAGES' }));
-  }
+  try {
+    validateMessages(messages);
+    validateContext(context);
+    validateExcludeIds(excludeIds);
+  } catch (error) { return next(error); }
   const row = db.prepare('SELECT answers FROM profiles WHERE user_id = ?').get(req.userId);
   const profile = row ? parseJson(row.answers, {}) : {};
   const stream = (req.get('Accept') || '').includes('text/event-stream');

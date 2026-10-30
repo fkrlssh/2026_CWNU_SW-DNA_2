@@ -19,12 +19,15 @@ pnpm start
 - `HARU_DB_PATH`: SQLite 파일 위치
 - `HARU_LATITUDE`, `HARU_LONGITUDE`: 날씨 조회 좌표
 - `HARU_TIMEZONE`: 시간대, 기본값 `Asia/Seoul`
+- `CORS_ORIGINS`: 쉼표로 구분한 허용 프론트엔드 주소
 - `CODEX_ENABLED`: 백엔드 A의 실제 Codex 규칙 생성을 사용할 때만 `true`
 - `OPENAI_API_KEY`: 챗봇(`POST /api/chat`)용 키. 없으면 챗봇만 안내 문구로 응답하고 나머지 기능은 정상 동작
 - `OPENAI_CHAT_MODEL`: 챗봇 모델, 기본값 `gpt-5.4-mini`
 - `CHAT_RATE_LIMIT_PER_MINUTE`: 사용자별 분당 챗봇 요청 상한, 기본값 `20`
 
 ## 주요 API
+
+상세 요청·응답 예시는 [`docs/API.md`](docs/API.md)를 참고하세요.
 
 - `GET /_app/health`
 - `POST /api/users`

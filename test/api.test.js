@@ -7,6 +7,7 @@ import test from 'node:test';
 const testDir = mkdtempSync(join(tmpdir(), 'haru-api-'));
 process.env.HARU_DB_PATH = join(testDir, 'test.sqlite');
 process.env.NODE_ENV = 'test';
+process.env.CORS_ORIGINS = 'http://allowed.test';
 delete process.env.OPENAI_API_KEY; // 테스트는 토큰을 쓰지 않는다. 키가 없으면 챗봇은 degraded 응답을 돌려준다.
 
 const { app } = await import('../server/app.js');
@@ -39,6 +40,20 @@ test('백엔드 B 핵심 API 흐름', async () => {
   const userId = created.json.userId;
   assert.match(userId, /^[0-9a-f-]{36}$/);
 
+  const deniedOrigin = await fetch(`${baseUrl}/api/users`, { method: 'POST', headers: { Origin: 'http://blocked.test' } });
+  assert.equal(deniedOrigin.status, 403);
+  assert.equal((await deniedOrigin.json()).error.code, 'CORS_ORIGIN_DENIED');
+
+  const invalidJson = await fetch(`${baseUrl}/api/profile`, {
+    method: 'PUT', headers: { 'X-User-Id': userId, 'Content-Type': 'application/json' }, body: '{'
+  });
+  assert.equal(invalidJson.status, 400);
+  assert.equal((await invalidJson.json()).error.code, 'INVALID_JSON');
+
+  const invalidProfile = await request('/api/profile', { method: 'PUT', userId, body: { answers: { food: '한식' } } });
+  assert.equal(invalidProfile.response.status, 400);
+  assert.equal(invalidProfile.json.error.code, 'INVALID_PROFILE');
+
   const profile = { food: ['한식', '분식', '일식'], style: [], activity: [], budgetRange: '보통' };
   const savedProfile = await request('/api/profile', { method: 'PUT', userId, body: { answers: profile } });
   assert.equal(savedProfile.response.status, 200);
@@ -55,6 +70,12 @@ test('백엔드 B 핵심 API 흐름', async () => {
   assert.equal(recommended.response.status, 200);
   assert.equal(recommended.json.items.length, 3);
   assert.ok(recommended.json.items.every(({ item }) => item.minutes <= 20), '10분 요청에는 20분 넘는 메뉴를 내지 않는다');
+
+  const invalidRecommendation = await request('/api/recommend', {
+    method: 'POST', userId, body: { category: 'eat', context: { unknown: '값' } }
+  });
+  assert.equal(invalidRecommendation.response.status, 400);
+  assert.equal(invalidRecommendation.json.error.code, 'INVALID_CONTEXT');
 
   const item = recommended.json.items[0].item;
   const decision = await request('/api/decisions', {
@@ -84,6 +105,12 @@ test('백엔드 B 핵심 API 흐름', async () => {
   const badChat = await request('/api/chat', { method: 'POST', userId, body: { messages: [{ role: 'assistant', content: 'x' }] } });
   assert.equal(badChat.response.status, 400);
   assert.equal(badChat.json.error.code, 'INVALID_MESSAGES');
+
+  const longChat = await request('/api/chat', {
+    method: 'POST', userId, body: { messages: [{ role: 'user', content: '가'.repeat(2_001) }] }
+  });
+  assert.equal(longChat.response.status, 400);
+  assert.equal(longChat.json.error.code, 'INVALID_MESSAGES');
 
   const history = await request('/api/history', { userId });
   assert.equal(history.response.status, 200);
