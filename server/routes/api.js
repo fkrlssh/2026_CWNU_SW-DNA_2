@@ -26,14 +26,16 @@ import {
 
 export const apiRouter = Router();
 
-async function getOrCreateRules(userId, profile, { retryFallback = false } = {}) {
+// allowAi=false 면 저장된 규칙이 없을 때 AI 를 부르지 않고 폴백 규칙을 만든다(추천·챗봇·장소 요청이 10~20초 멈추지 않도록).
+// AI 생성은 온보딩의 POST /api/rules/generate 에서만 한다.
+async function getOrCreateRules(userId, profile, { retryFallback = false, allowAi = true } = {}) {
   const answersHash = profileHash(profile);
   const saved = db.prepare('SELECT rules, source, answers_hash FROM rules WHERE user_id = ?').get(userId);
   // 장애로 저장된 폴백은 규칙 생성 요청 때 AI 제공자로 다시 시도한다.
   const retry = retryFallback && saved?.source === 'fallback' && rulesProviderName() !== 'fallback';
   if (saved?.answers_hash === answersHash && !retry) return parseJson(saved.rules, null);
 
-  const rules = await createRules(profile);
+  const rules = await createRules(profile, { allowAi });
   db.prepare(`
     INSERT INTO rules (user_id, rules, source, answers_hash, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(user_id) DO UPDATE SET rules = excluded.rules, source = excluded.source,
@@ -90,7 +92,7 @@ apiRouter.post('/recommend', async (req, res, next) => {
   const row = db.prepare('SELECT answers FROM profiles WHERE user_id = ?').get(req.userId);
   const profile = row ? parseJson(row.answers, {}) : {};
   try {
-    const rules = await getOrCreateRules(req.userId, profile);
+    const rules = await getOrCreateRules(req.userId, profile, { allowAi: false });
     const items = recommendWithRules({ rules, category, context, refine, excludeIds });
     res.json({ items, engine: rules.meta?.source || 'fallback' });
   } catch (error) {
@@ -177,20 +179,25 @@ apiRouter.post('/chat', chatLimiter, async (req, res, next) => {
   const row = db.prepare('SELECT answers FROM profiles WHERE user_id = ?').get(req.userId);
   const profile = row ? parseJson(row.answers, {}) : {};
   const stream = (req.get('Accept') || '').includes('text/event-stream');
+  let keepalive = null;
   try {
-    const rules = await getOrCreateRules(req.userId, profile);
+    const rules = await getOrCreateRules(req.userId, profile, { allowAi: false });
     if (stream) {
-      res.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+      res.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
       res.flushHeaders();
+      // 모델 응답을 기다리는 동안 연결이 끊기지 않도록 주석 줄을 보낸다. 클라이언트는 무시한다.
+      keepalive = setInterval(() => res.write(': keepalive\n\n'), 10_000);
     }
     const result = await chatWithRules({
       rules, messages, context, excludeIds,
       onDelta: stream ? (delta) => res.write(`data: ${JSON.stringify({ delta })}\n\n`) : undefined,
+      // 진행 단계(thinking·recommending·answering). 프론트는 "메뉴 고르는 중…" 같은 안내에 쓸 수 있다.
+      onStatus: stream ? (stage) => res.write(`event: status\ndata: ${JSON.stringify({ stage })}\n\n`) : undefined,
     });
-    console.log(`[chat] user=${req.userId} in=${result.usage.input_tokens} out=${result.usage.output_tokens} degraded=${result.degraded}`);
+    console.log(`[chat] user=${req.userId} in=${result.usage.input_tokens} out=${result.usage.output_tokens} degraded=${result.degraded} partial=${result.partial}`);
     const payload = {
       reply: result.reply, recommendations: result.recommendations,
-      degraded: result.degraded, engine: rules.meta?.source || 'fallback',
+      degraded: result.degraded, partial: result.partial, engine: rules.meta?.source || 'fallback',
     };
     if (!stream) return res.json(payload);
     res.write(`event: done\ndata: ${JSON.stringify(payload)}\n\n`);
@@ -200,6 +207,8 @@ apiRouter.post('/chat', chatLimiter, async (req, res, next) => {
     console.error(error);
     res.write('event: error\ndata: {"code":"CHAT_FAILED"}\n\n');
     res.end();
+  } finally {
+    if (keepalive) clearInterval(keepalive);
   }
 });
 
@@ -214,7 +223,7 @@ apiRouter.post('/places', async (req, res, next) => {
   const row = db.prepare('SELECT answers FROM profiles WHERE user_id = ?').get(req.userId);
   const profile = row ? parseJson(row.answers, {}) : {};
   try {
-    const rules = await getOrCreateRules(req.userId, profile);
+    const rules = await getOrCreateRules(req.userId, profile, { allowAi: false });
     const result = await placesForItem({
       rules, category, itemId, location,
       radiusKm: radiusKm === null ? undefined : Number(radiusKm),

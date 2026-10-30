@@ -66,9 +66,10 @@ export function rulesProviderName() {
   return resolveRulesProvider().name;
 }
 
-export async function createRules(profile = {}) {
+// allowAi=false 면 AI 제공자를 쓰지 않고 폴백 규칙을 만든다.
+export async function createRules(profile = {}, { allowAi = true } = {}) {
   const answers = normalizeProfile(profile);
-  const provider = resolveRulesProvider();
+  const provider = allowAi ? resolveRulesProvider() : { name: 'fallback', run: null };
   return generateRules(answers, { run: provider.run, source: provider.name });
 }
 
@@ -88,7 +89,7 @@ export function fullCatalog() {
   return Object.entries(CATALOG).flatMap(([category, items]) => items.map((item) => normalizeItem(item, category)));
 }
 
-export function chatWithRules({ rules, messages, context = {}, excludeIds = [], onDelta }) {
+export function chatWithRules({ rules, messages, context = {}, excludeIds = [], onDelta, onStatus }) {
   return chat({
     rules,
     messages,
@@ -96,6 +97,7 @@ export function chatWithRules({ rules, messages, context = {}, excludeIds = [], 
     context: normalizeContext(context),
     excludeIds: Array.isArray(excludeIds) ? excludeIds : [],
     onDelta,
+    onStatus,
   });
 }
 

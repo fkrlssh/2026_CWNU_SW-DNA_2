@@ -95,7 +95,7 @@ function assignReasons(ranked) {
 
 // catalog 은 normalizeItem 을 거친, 요청 카테고리의 항목만 넘긴다.
 // random 은 테스트에서 결과를 고정하기 위한 주입점이다.
-export function recommend({ rules, context, catalog, excludeIds = [], refine, random = Math.random }) {
+export function recommend({ rules, context, catalog, excludeIds = [], refine, limit = RESULT_COUNT, random = Math.random }) {
   const weightSets = activeWeights(rules, context);
   const excluded = new Set(excludeIds);
   const excludedTags = new Set(
@@ -118,6 +118,6 @@ export function recommend({ rules, context, catalog, excludeIds = [], refine, ra
       return { item, reasons: rankedReasons(item, weightSets, rules), score };
     })
     .sort((a, b) => b.score - a.score)
-    .slice(0, RESULT_COUNT);
+    .slice(0, limit);
   return assignReasons(ranked);
 }

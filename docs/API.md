@@ -93,7 +93,9 @@
 
 메시지는 최대 20개, 각 내용은 최대 2000자입니다. `OPENAI_API_KEY`가 없거나 외부 호출이 실패하면 HTTP 요청은 성공하면서 `degraded: true`인 안내 응답을 반환합니다.
 
-스트리밍은 `Accept: text/event-stream` 헤더를 사용합니다. `data` 이벤트로 `{ "delta": "..." }`가 전송되고 마지막 `done` 이벤트에 전체 응답이 담깁니다.
+스트리밍은 `Accept: text/event-stream` 헤더를 사용합니다. `data` 이벤트로 `{ "delta": "..." }`가 전송되고 마지막 `done` 이벤트에 전체 응답이 담깁니다. 모델을 기다리는 동안 `status` 이벤트(`{ "stage": "thinking" | "recommending" | "answering" }`)와 `: keepalive` 주석 줄이 올 수 있으니 모르는 이벤트는 무시하면 됩니다.
+
+응답의 `recommendations`는 1~5개입니다(사용자가 "5가지"처럼 개수를 말하면 최대 5개). `partial: true`는 추천은 골랐지만 답변 문장 생성에 실패해 기본 문구로 대신한 경우이며, 카드는 정상적으로 표시하면 됩니다.
 
 ## 장소 검색 (지도)
 
@@ -130,7 +132,7 @@
 
 ## 취향 규칙 생성 제공자
 
-`POST /api/rules/generate`의 응답 `status`는 규칙을 만든 제공자입니다: `api`(OpenAI 직접 호출, Structured Outputs), `codex`(Codex CLI), `fallback`(AI 없이 온보딩 칩만으로 만든 기본 규칙). `RULES_PROVIDER`로 고르며 비우면 `OPENAI_API_KEY`가 있을 때 `api`입니다. AI 호출은 사용자당 1회(답변이 같으면 재사용)이고 10~20초, 약 2~5천 토큰이 듭니다. 실패하면 1회 재시도 후 `fallback`으로 응답하며, 이후 다시 `POST /api/rules/generate`를 부르면 AI로 재시도합니다.
+`POST /api/rules/generate`의 응답 `status`는 규칙을 만든 제공자입니다: `api`(OpenAI 직접 호출, Structured Outputs), `codex`(Codex CLI), `fallback`(AI 없이 온보딩 칩만으로 만든 기본 규칙). `RULES_PROVIDER`로 고르며 비우면 `OPENAI_API_KEY`가 있을 때 `api`입니다. AI 호출은 사용자당 1회(답변이 같으면 재사용)이고 10~20초, 약 2~5천 토큰이 듭니다. 실패하면 1회 재시도 후 `fallback`으로 응답하며, 이후 다시 `POST /api/rules/generate`를 부르면 AI로 재시도합니다. AI 생성은 이 엔드포인트에서만 일어납니다. `/api/recommend`, `/api/chat`, `/api/places`는 저장된 규칙이 없으면 기다리지 않고 폴백 규칙을 쓰므로, 온보딩 저장 뒤에는 반드시 `POST /api/rules/generate`를 호출해 주세요.
 
 ## 운영 설정
 

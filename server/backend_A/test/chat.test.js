@@ -38,7 +38,7 @@ function fakeFetch(...turns) {
   return { fetchImpl, requests };
 }
 
-const noSituation = { category: 'food', refine: null, mood: null, budget: null, time: null, mode: null, weather: null, with: null };
+const noSituation = { category: 'food', refine: null, count: null, mood: null, budget: null, time: null, mode: null, weather: null, with: null };
 
 test('chat: 스트리밍 조각을 전달하고 답변을 돌려준다', async () => {
   const { fetchImpl } = fakeFetch(textTurn('안녕하세요'));
@@ -59,12 +59,49 @@ test('chat: 도구 호출은 엔진을 거쳐 카테고리와 알레르기 필�
   assert.equal(result.usage.input_tokens, 10);
 });
 
-test('chat: 도구 호출 횟수에 상한이 있다', async () => {
-  const { fetchImpl, requests } = fakeFetch(toolTurn(noSituation), toolTurn(noSituation), textTurn('끝'));
-  const result = await chat({ rules, messages: ask, catalog, apiKey: 'k', fetchImpl, random: () => 0 });
-  assert.equal(requests.length, 3);
-  assert.equal(requests[2].tool_choice, 'none');
+test('chat: 도구는 한 번만 부르고 두 번째 호출은 추론 없이 답변만 받는다', async () => {
+  const { fetchImpl, requests } = fakeFetch(toolTurn(noSituation), textTurn('끝'));
+  const stages = [];
+  const result = await chat({ rules, messages: ask, catalog, apiKey: 'k', fetchImpl, random: () => 0, onStatus: (s) => stages.push(s) });
+  assert.equal(requests.length, 2);
+  assert.equal(requests[0].tool_choice, 'auto');
+  assert.equal(requests[0].reasoning.effort, 'low');
+  assert.equal(requests[1].tool_choice, 'none');
+  assert.equal(requests[1].reasoning.effort, 'none');
   assert.equal(result.reply, '끝');
+  assert.deepEqual(stages, ['thinking', 'recommending', 'answering']);
+});
+
+test('chat: count 로 개수를 요청하면 최대 5개까지 돌려준다', async () => {
+  const bigCatalog = Array.from({ length: 8 }, (_, i) => ({ id: `f${i}`, title: `음식 ${i}`, tags: ['한식'], price: 1, type: 'food', allergens: [] }));
+  const { fetchImpl, requests } = fakeFetch(toolTurn({ ...noSituation, count: 5 }), textTurn('다섯 개요'));
+  const result = await chat({ rules, messages: ask, catalog: bigCatalog, apiKey: 'k', fetchImpl, random: () => 0 });
+  assert.equal(result.recommendations.length, 5);
+  assert.equal(JSON.parse(requests[1].input.find((i) => i.type === 'function_call_output').output).length, 5);
+  const capped = await chat({ rules, messages: ask, catalog: bigCatalog, apiKey: 'k', fetchImpl: fakeFetch(toolTurn({ ...noSituation, count: 9 }), textTurn('x')).fetchImpl, random: () => 0 });
+  assert.equal(capped.recommendations.length, 5, '5개 초과 요청은 5개로 제한');
+  assert.ok(JSON.stringify(requests[0].tools[0].parameters).includes('"count"'), '도구 스키마에 count 가 있다');
+});
+
+test('chat: 추천은 골랐는데 답변 생성이 실패하면 카드는 유지하고 partial 로 표시한다', async () => {
+  const turns = [toolTurn(noSituation), new Response('upstream error', { status: 500 }), new Response('still down', { status: 503 })];
+  const fetchImpl = async () => turns.shift();
+  const result = await chat({ rules, messages: ask, catalog, apiKey: 'k', fetchImpl, random: () => 0 });
+  assert.equal(result.partial, true);
+  assert.equal(result.degraded, false);
+  assert.equal(result.recommendations.length, 1);
+  assert.match(result.reply, /후보를 골라봤어요/);
+});
+
+test('chat: 429·5xx 는 한 번 재시도한다', async () => {
+  const turns = [new Response('rate limited', { status: 429 }), textTurn('재시도 성공')];
+  let calls = 0;
+  const fetchImpl = async () => { calls += 1; return turns.shift(); };
+  const result = await chat({ rules, messages: ask, catalog, apiKey: 'k', fetchImpl });
+  assert.equal(result.reply, '재시도 성공');
+  assert.equal(calls, 2);
+  const once = await chat({ rules, messages: ask, catalog, apiKey: 'k', fetchImpl: async () => new Response('bad request', { status: 400 }) });
+  assert.equal(once.degraded, true, '400 은 재시도하지 않고 바로 실패');
 });
 
 test('chat: system 역할을 걸러내고 기록 길이를 제한한다', async () => {
