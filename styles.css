@@ -970,6 +970,7 @@ h1 { font-size: 24px; line-height: 1.35; font-weight: 800; letter-spacing: -.03e
 .so-copy small { font-size: 14px; color: var(--color-text-sub); }
 .so-arrow { flex: none; font-size: 22px; color: #B5B5B0; transition: transform .15s ease, color .15s ease; }
 .situation-option:hover .so-arrow { color: var(--color-text); transform: translateX(2px); }
+.situation-links { display: grid; gap: 6px; justify-items: center; margin-top: var(--space-4); }
 
 /* 넓은 화면: 선택지를 가로 타일로 */
 @media (min-width: 900px) {
@@ -988,5 +989,17 @@ h1 { font-size: 24px; line-height: 1.35; font-weight: 800; letter-spacing: -.03e
   .so-arrow { position: absolute; }
   .situation-option { position: relative; }
   .situation-option .so-arrow { right: 20px; bottom: 18px; }
-  .situation .link-button.skip { margin-top: var(--space-4); }
+  .situation .situation-links { margin-top: var(--space-4); }
 }
+
+/* ───────── 세부 취향(좋아요/싫어요 칩) ───────── */
+.chip.dislike { background: var(--color-danger-soft); border-color: var(--color-danger); color: var(--color-danger-text); text-decoration: line-through; }
+.seg { display: flex; gap: 8px; margin: var(--space-3) 0 var(--space-2); }
+.seg-tab { flex: 1; min-height: 42px; border: 1px solid var(--color-border); border-radius: var(--radius-chip); background: var(--color-bg); font-size: 14px; }
+.seg-tab.active { background: var(--color-primary); border-color: var(--color-primary); font-weight: 700; }
+.taste-group { margin-top: var(--space-4); }
+.taste-group h2 { margin: 0 0 10px; font-size: 15px; color: var(--color-text-sub); }
+.tastes-cta { display: grid; gap: 8px; }
+.tastes-cta .pick-count { margin: 0; text-align: center; }
+.situation-chips { margin-top: var(--space-4); gap: 10px; }
+.situation-chips .chip { min-height: 48px; padding: 0 18px; font-size: 16px; }

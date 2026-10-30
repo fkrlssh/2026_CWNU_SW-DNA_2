@@ -16,6 +16,7 @@ const BUDGET_RANK = { low: 1, mid: 2, high: 3 };
 // 시간 답변별 [소요 분 상한, 점수]. 처음 맞는 구간을 쓰고 마지막 구간은 초과분이다.
 const TIME_FIT = {
   10: [[10, 6], [20, 1], [Infinity, -4]],
+  30: [[30, 5], [45, 1], [Infinity, -3]],
   60: [[60, 4], [Infinity, -2]],
   180: [[30, 1], [Infinity, 3]],
 };

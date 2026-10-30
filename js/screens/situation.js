@@ -25,6 +25,7 @@ export function renderSituation() {
   const questions = activeQuestions();
   const question = questions[state.questionIndex];
   const category = categoryInfo();
+  const isLast = state.questionIndex >= questions.length - 1;
   return {
     title: `${category.emoji} ${category.title}`,
     back: { action: 'situation-back', label: state.questionIndex === 0 ? '홈으로' : '이전 질문' },
@@ -35,7 +36,10 @@ export function renderSituation() {
       <h1 tabindex="-1">${escapeHtml(question.title)}</h1>
       ${question.hint ? `<p class="lead situation-hint">${escapeHtml(question.hint)}</p>` : ''}
       <div class="situation-options count-${question.options.length}">${question.options.map((option) => optionButton(question, option)).join('')}</div>
-      <button type="button" class="link-button skip" data-action="situation-skip">건너뛰고 바로 추천받기</button>
+      <div class="situation-links">
+        <button type="button" class="link-button" data-action="situation-pass">${isLast ? '상관없어요, 추천받기' : '이 질문은 넘어갈게요'}</button>
+        ${isLast ? '' : '<button type="button" class="link-button skip" data-action="situation-skip">건너뛰고 바로 추천받기</button>'}
+      </div>
     </div>`
   };
 }

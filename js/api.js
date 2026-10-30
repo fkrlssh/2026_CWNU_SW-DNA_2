@@ -23,8 +23,9 @@ function toServerProfile(profile) {
     radiusKm: RADIUS_KM[profile.radius] || 3,
     allergies: avoid.filter((word) => ALLERGY_CHIPS.includes(word)),
     dislikes: avoid.filter((word) => !ALLERGY_CHIPS.includes(word)),
-    // 퀴즈가 저장한 축 값도 온보딩을 다시 저장할 때 지워지지 않게 같이 보냅니다.
-    preferences: profile.preferences || {}
+    // 퀴즈가 저장한 축 값과 세부 취향 칩도 온보딩을 다시 저장할 때 지워지지 않게 같이 보냅니다.
+    preferences: profile.preferences || {},
+    tastes: { like: profile.tastes?.like || [], dislike: profile.tastes?.dislike || [] }
   };
 }
 
@@ -39,16 +40,23 @@ function fromServerProfile(answers) {
     activeTime: answers.activeTime || null,
     radius,
     avoid: [...(answers.allergies || []), ...(answers.dislikes || [])],
-    preferences: answers.preferences || {}
+    preferences: answers.preferences || {},
+    tastes: { like: answers.tastes?.like || [], dislike: answers.tastes?.dislike || [] }
   };
 }
 
 // 서버는 context 값이 모두 '비어 있지 않은 문자열'이어야 받아줘요. (null이면 400)
+// prefer/avoid 만 예외로 태그 문자열 배열이에요. (이번 추천에서 고른 범주)
 const MODE_TO_SERVER = { 집에서: '집밥' };
 const WITH_TO_SERVER = { 혼자: 'alone', 같이: 'friend' };
 function toServerContext(context = {}) {
   const result = {};
   for (const [key, value] of Object.entries(context)) {
+    if (key === 'prefer' || key === 'avoid') {
+      const list = (Array.isArray(value) ? value : []).filter((tag) => typeof tag === 'string' && tag.trim());
+      if (list.length) result[key] = list;
+      continue;
+    }
     if (typeof value !== 'string' || !value.trim()) continue;
     if (key === 'mode') result.mode = MODE_TO_SERVER[value] || value;
     else if (key === 'with') result.with = WITH_TO_SERVER[value] || value;
@@ -214,6 +222,10 @@ const serverApi = {
   },
   async getPlaces({ category, itemId }) {
     return request('/api/places', { method: 'POST', body: { category, itemId } });
+  },
+  // 세부 취향 화면용: 축(슬라이더)과 그룹(좋아요/싫어요 칩) 목록
+  async getPreferenceSchema() {
+    return request('/api/preferences/schema');
   },
   async getPreferenceQuiz(category) {
     const [quiz, schema] = await Promise.all([

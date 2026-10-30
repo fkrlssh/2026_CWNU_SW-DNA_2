@@ -7,13 +7,13 @@ import { ATTRIBUTE_TAGS } from './preferences.js';
 export const CONTEXT_KEYS = {
   mood: ['good', 'tired', 'sad'],
   budget: ['low', 'mid', 'high'],
-  time: ['10', '60', '180'],
+  time: ['10', '30', '60', '180'],
   mode: ['delivery', 'out', 'home'],
   weather: ['rain', 'clear'],
   with: ['alone', 'friend'],
 };
 
-export const TAGS = [
+export const TAGS = [...new Set([
   // 온보딩 칩 태그 (프론트 js/data.js 의 ONBOARDING_STEPS 와 맞춘다)
   '한식', '양식', '일식', '분식', '중식', '샐러드', '디저트',
   '미니멀', '캐주얼', '스트릿', '러블리', '스포티', '포멀', '편한 옷',
@@ -22,9 +22,9 @@ export const TAGS = [
   'comfort', 'light', 'delivery', 'indoor', 'outdoor', 'group', 'solo',
   // 알레르기 태그
   ...ALLERGEN_TAGS,
-  // 취향 축 속성 태그 (preferences.js: 매운·순한, 따뜻한·차가운, 격식 있는·편안한 …)
+  // 취향 축·그룹 속성 태그 (preferences.js: 매운·순한, 밥·면요리, 니트·블랙, 운동·감상 …)
   ...ATTRIBUTE_TAGS,
-];
+])];
 
 export const TYPES = ['food', 'do', 'wear'];
 export const MAX_PRICE_BY_BUDGET = { low: 1, mid: 2, high: 3 };
