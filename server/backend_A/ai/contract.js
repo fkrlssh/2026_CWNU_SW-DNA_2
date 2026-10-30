@@ -1,4 +1,6 @@
 import { ALLERGEN_TAGS, ITEM_ALLERGENS, normalizeExclusions } from './allergens.js';
+import { ITEM_ATTRIBUTES } from './attributes.js';
+import { ATTRIBUTE_TAGS } from './preferences.js';
 
 // 3인 합의 전 임시값. 역할분담.md 부록이 확정되면 이 파일만 고친다.
 
@@ -20,6 +22,8 @@ export const TAGS = [
   'comfort', 'light', 'delivery', 'indoor', 'outdoor', 'group', 'solo',
   // 알레르기 태그
   ...ALLERGEN_TAGS,
+  // 취향 축 속성 태그 (preferences.js: 매운·순한, 따뜻한·차가운, 격식 있는·편안한 …)
+  ...ATTRIBUTE_TAGS,
 ];
 
 export const TYPES = ['food', 'do', 'wear'];
@@ -64,7 +68,7 @@ export function normalizeItem(raw, category) {
     ...raw,
     type: raw.type ?? TYPE_BY_CATEGORY[category],
     price: raw.price ?? PRICE_BY_BUDGET_LABEL[raw.budget] ?? 2,
-    tags: [...new Set([...(raw.tags ?? []), ...modeTags, ...derivedTags])],
+    tags: [...new Set([...(raw.tags ?? []), ...modeTags, ...derivedTags, ...(raw.attributes ?? ITEM_ATTRIBUTES[raw.id] ?? [])])],
     moodKeys: raw.moodKeys ?? (raw.moods ?? []).map((mood) => MOOD_KEY_BY_LABEL[mood]).filter(Boolean),
     modeKeys: raw.modeKeys ?? [...new Set((raw.modes ?? []).map((mode) => MODE_KEY_BY_LABEL[mode]).filter(Boolean))],
     // data.js 는 '밀'·'대두' 같은 한국어로 적고, 필터는 영어 태그로 비교하므로 여기서 통일한다.

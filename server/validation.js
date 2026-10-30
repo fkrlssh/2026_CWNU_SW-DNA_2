@@ -1,4 +1,7 @@
+import { PREFERENCE_DIMENSIONS } from './backend_A/ai/index.js';
+
 const PROFILE_LIST_FIELDS = ['food', 'style', 'activity', 'foods', 'styles', 'activities', 'allergies', 'dislikes'];
+const PREFERENCE_KEYS = new Set(Object.values(PREFERENCE_DIMENSIONS).flat().map((dimension) => dimension.key));
 const CONTEXT_FIELDS = new Set(['mood', 'budget', 'time', 'mode', 'weather', 'with']);
 const REFINES = new Set(['cheaper', 'lighter', 'different', 'new']);
 const MESSAGE_ROLES = new Set(['user', 'assistant']);
@@ -32,6 +35,14 @@ export function validateProfile(answers) {
   for (const field of ['budget', 'budgetRange', 'activeTime', 'noveltyPref']) {
     if (field in answers && (typeof answers[field] !== 'string' || answers[field].length > 40)) {
       fail('INVALID_PROFILE', `${field}는 40자 이내 문자열이어야 합니다.`);
+    }
+  }
+  if ('preferences' in answers) {
+    if (!isPlainObject(answers.preferences)) fail('INVALID_PROFILE', 'preferences는 { 축키: -2~2 숫자 } 객체여야 합니다.');
+    for (const [key, value] of Object.entries(answers.preferences)) {
+      if (!PREFERENCE_KEYS.has(key)) fail('INVALID_PROFILE', `알 수 없는 취향 축입니다: ${key}`);
+      const number = Number(value);
+      if (!Number.isFinite(number) || number < -2 || number > 2) fail('INVALID_PROFILE', `preferences.${key}는 -2~2 사이 숫자여야 합니다.`);
     }
   }
 }

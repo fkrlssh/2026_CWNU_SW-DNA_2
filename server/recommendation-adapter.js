@@ -2,12 +2,14 @@ import { createHash } from 'node:crypto';
 import { CATALOG } from '../data.js';
 import {
   applyFeedback,
+  applyPreferences,
   chat,
   findPlaces,
   generateRules,
   normalizeItem,
   recommend,
   resolveRulesProvider,
+  sanitizePreferences,
 } from './backend_A/ai/index.js';
 
 const budgetByLabel = {
@@ -43,11 +45,20 @@ export function normalizeProfile(profile = {}) {
     allergies: Array.isArray(profile.allergies) ? profile.allergies : [],
     dislikes: Array.isArray(profile.dislikes) ? profile.dislikes : [],
     noveltyPref: profile.noveltyPref === 'new' ? 'new' : 'familiar',
+    // 취향 축 슬라이더 값. 규칙 생성에는 쓰지 않고 추천 시점에 덧씌운다(바꿔도 AI 재생성 없음).
+    preferences: sanitizePreferences(profile.preferences),
   };
 }
 
+// 규칙 재생성 여부를 정하는 해시. preferences 는 덧씌우기라 제외한다.
 export function profileHash(profile = {}) {
-  return createHash('sha256').update(JSON.stringify(canonicalize(normalizeProfile(profile)))).digest('hex');
+  const { preferences, ...answers } = normalizeProfile(profile);
+  return createHash('sha256').update(JSON.stringify(canonicalize(answers))).digest('hex');
+}
+
+// 프로필의 슬라이더 값을 규칙에 덧씌운다. 추천·챗봇이 공통으로 쓴다.
+export function rulesForProfile(rules, profile = {}) {
+  return applyPreferences(rules, sanitizePreferences(profile.preferences));
 }
 
 export function normalizeContext(context = {}) {
@@ -68,7 +79,7 @@ export function rulesProviderName() {
 
 // allowAi=false 면 AI 제공자를 쓰지 않고 폴백 규칙을 만든다.
 export async function createRules(profile = {}, { allowAi = true } = {}) {
-  const answers = normalizeProfile(profile);
+  const { preferences, ...answers } = normalizeProfile(profile);
   const provider = allowAi ? resolveRulesProvider() : { name: 'fallback', run: null };
   return generateRules(answers, { run: provider.run, source: provider.name });
 }

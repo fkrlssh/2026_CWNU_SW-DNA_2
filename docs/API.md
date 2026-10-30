@@ -40,6 +40,20 @@
 
 조회는 `GET /api/profile`, 규칙 생성은 `POST /api/rules/generate`를 사용합니다.
 
+### 취향 축 슬라이더 (`preferences`)
+
+칩 선택 외에 카테고리별 속성 축을 -2~+2로 조절할 수 있습니다. 값은 `answers.preferences`에 축 키로 넣어 같은 `PUT /api/profile`로 저장합니다.
+
+```json
+{ "answers": { "food": ["한식"], "preferences": { "spicy": 2, "temperature": 1, "formality": -1, "company": 2 } } }
+```
+
+- 축 목록은 `GET /api/preferences/schema`(인증 불필요)가 돌려줍니다: `{ min: -2, max: 2, step: 0.5, dimensions: { eat: [...], wear: [...], do: [...] } }`. 각 축은 `{ key, label, low: { tag, label }, high: { tag, label } }`이라 양 끝 라벨을 그대로 슬라이더에 붙이면 됩니다.
+- 음식: 매운맛(`spicy`) · 온도(`temperature`) · 포만감(`heaviness`) · 맛 성향(`flavor`) · 단맛(`sweetness`). 옷: 격식(`formality`) · 두께(`thickness`) · 색감(`brightness`) · 꾸밈(`flashiness`). 활동: 장소(`place`) · 활동량(`energy`) · 동행(`company`) · 비용(`cost`).
+- 값 +2는 `high` 쪽 속성에 +2.5, `low` 쪽에 -2.5의 가중치가 되어 추천·챗봇 점수에 바로 더해집니다. 0이거나 없는 축은 영향이 없습니다.
+- 슬라이더 값은 취향 규칙 생성(AI)에 쓰지 않고 추천 시점에 덧씌우므로, 바꿔도 `POST /api/rules/generate`를 다시 부를 필요가 없고 토큰도 들지 않습니다. 알레르기 같은 하드 필터보다 우선하지 않습니다.
+- 모르는 축 키나 범위 밖 값은 `INVALID_PROFILE`(400)입니다.
+
 ## 상황과 추천
 
 `GET /api/context`는 `weather`, `temperature`, `timeSlot`, `source`를 반환합니다.

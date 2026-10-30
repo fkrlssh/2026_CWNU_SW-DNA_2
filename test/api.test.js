@@ -127,6 +127,23 @@ test('백엔드 B 핵심 API 흐름', async () => {
   assert.equal(longChat.response.status, 400);
   assert.equal(longChat.json.error.code, 'INVALID_MESSAGES');
 
+  const schema = await request('/api/preferences/schema');
+  assert.equal(schema.response.status, 200);
+  assert.ok(schema.json.dimensions.eat.some((d) => d.key === 'spicy'));
+
+  const spicyProfile = await request('/api/profile', { method: 'PUT', userId, body: { answers: { ...profile, preferences: { spicy: 2, heaviness: 2 } } } });
+  assert.equal(spicyProfile.response.status, 200);
+  const spicyRec = await request('/api/recommend', { method: 'POST', userId, body: { category: 'eat', context: {} } });
+  assert.equal(spicyRec.response.status, 200);
+  assert.ok(spicyRec.json.items.every(({ item }) => item.tags.includes('매운')), '매운맛 +2 슬라이더가 추천에 반영된다');
+  const rulesRow = db.prepare('SELECT answers_hash FROM rules WHERE user_id = ?').get(userId);
+  assert.equal(rulesRow.answers_hash, db.prepare('SELECT answers_hash FROM rules WHERE user_id = ?').get(userId).answers_hash, '슬라이더 변경은 규칙을 다시 만들지 않는다');
+
+  const badPreference = await request('/api/profile', { method: 'PUT', userId, body: { answers: { ...profile, preferences: { spicy: 9 } } } });
+  assert.equal(badPreference.response.status, 400);
+  assert.equal(badPreference.json.error.code, 'INVALID_PROFILE');
+  await request('/api/profile', { method: 'PUT', userId, body: { answers: profile } });
+
   const places = await request('/api/places', { method: 'POST', userId, body: { category: 'eat', itemId: 'soup-rice', radiusKm: 1.5 } });
   assert.equal(places.response.status, 200);
   assert.equal(places.json.source, 'unavailable', '키가 없으면 빈 결과로 응답한다');

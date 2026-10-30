@@ -11,8 +11,10 @@ import {
   placesForItem,
   profileHash,
   recommendWithRules,
+  rulesForProfile,
   rulesProviderName,
 } from '../recommendation-adapter.js';
+import { preferenceSchema } from '../backend_A/ai/index.js';
 import { fetchContext } from '../weather.js';
 import {
   validateContext,
@@ -49,6 +51,9 @@ apiRouter.post('/users', (_req, res) => {
   db.prepare('INSERT INTO users (id) VALUES (?)').run(userId);
   res.status(201).json({ userId });
 });
+
+// 취향 축 슬라이더 화면용 스키마. 사용자 식별 없이 읽을 수 있는 정적 정보다.
+apiRouter.get('/preferences/schema', (_req, res) => res.json(preferenceSchema()));
 
 apiRouter.use(requireUser);
 
@@ -92,7 +97,7 @@ apiRouter.post('/recommend', async (req, res, next) => {
   const row = db.prepare('SELECT answers FROM profiles WHERE user_id = ?').get(req.userId);
   const profile = row ? parseJson(row.answers, {}) : {};
   try {
-    const rules = await getOrCreateRules(req.userId, profile, { allowAi: false });
+    const rules = rulesForProfile(await getOrCreateRules(req.userId, profile, { allowAi: false }), profile);
     const items = recommendWithRules({ rules, category, context, refine, excludeIds });
     res.json({ items, engine: rules.meta?.source || 'fallback' });
   } catch (error) {
@@ -181,7 +186,7 @@ apiRouter.post('/chat', chatLimiter, async (req, res, next) => {
   const stream = (req.get('Accept') || '').includes('text/event-stream');
   let keepalive = null;
   try {
-    const rules = await getOrCreateRules(req.userId, profile, { allowAi: false });
+    const rules = rulesForProfile(await getOrCreateRules(req.userId, profile, { allowAi: false }), profile);
     if (stream) {
       res.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
       res.flushHeaders();
